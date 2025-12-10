@@ -80,21 +80,32 @@ const QuizGame: React.FC = () => {
     });
   };
 
+  const toggleGroup = (groupCats: string[]) => {
+    setConfig(prev => {
+      // Check if all categories in this group are currently selected
+      const isAllSelected = groupCats.every(cat => prev.selectedCategories.includes(cat));
+      
+      let newSelected;
+      if (isAllSelected) {
+        // Deselect all in group
+        newSelected = prev.selectedCategories.filter(c => !groupCats.includes(c));
+      } else {
+        // Select all in group (merge and deduplicate)
+        const currentSet = new Set(prev.selectedCategories);
+        groupCats.forEach(c => currentSet.add(c));
+        newSelected = Array.from(currentSet);
+      }
+      
+      return { ...prev, selectedCategories: newSelected };
+    });
+  };
+
   const selectAllCategories = () => {
     setConfig(prev => ({ ...prev, selectedCategories: [...CATEGORIES] }));
   };
   
   const deselectAllCategories = () => {
     setConfig(prev => ({ ...prev, selectedCategories: [] }));
-  };
-
-  const setComprehensiveTest = () => {
-    setConfig({
-      questionType: 'hiragana', // ignored in mixed mode
-      answerType: 'romaji',   // ignored in mixed mode
-      selectedCategories: [...CATEGORIES],
-      isMixedMode: true
-    });
   };
 
   const startGame = () => {
@@ -241,16 +252,6 @@ const QuizGame: React.FC = () => {
         </div>
 
         <div className="space-y-6 mb-8">
-          {/* Preset Button */}
-           <div className="flex justify-center">
-             <button 
-                onClick={setComprehensiveTest}
-                className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-6 py-2 rounded-full font-bold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all text-sm flex items-center gap-2"
-             >
-               <span>🌟</span> 综合全能测试 (一键配置)
-             </button>
-           </div>
-
           {/* Mixed Mode Toggle */}
           <div 
             onClick={() => setConfig(p => ({ ...p, isMixedMode: !p.isMixedMode }))}
@@ -317,27 +318,38 @@ const QuizGame: React.FC = () => {
                </div>
              </div>
              
-             <div className="space-y-4">
-               {Object.entries(CATEGORY_GROUPS).map(([groupName, cats]) => (
-                 <div key={groupName}>
-                   <h4 className="text-xs text-slate-400 font-bold mb-2 uppercase">{groupName}</h4>
-                   <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                     {cats.map((cat) => (
-                       <button
-                         key={cat}
-                         onClick={() => toggleCategory(cat)}
-                         className={`py-1.5 px-1 rounded text-sm font-medium border transition-all ${
-                           config.selectedCategories.includes(cat)
-                             ? 'bg-indigo-100 border-indigo-300 text-indigo-700'
-                             : 'bg-white border-slate-200 text-slate-400'
-                         }`}
-                       >
-                         {ROW_LABELS[cat] || cat}
-                       </button>
-                     ))}
+             <div className="space-y-6">
+               {Object.entries(CATEGORY_GROUPS).map(([groupName, cats]) => {
+                 const isGroupFull = cats.every(c => config.selectedCategories.includes(c));
+                 return (
+                   <div key={groupName}>
+                     <button 
+                       onClick={() => toggleGroup(cats)}
+                       className={`flex items-center gap-2 mb-2 text-xs font-bold uppercase transition-colors ${isGroupFull ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+                     >
+                        {groupName}
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] ${isGroupFull ? 'bg-indigo-100' : 'bg-slate-100'}`}>
+                          {isGroupFull ? '已全选' : '点击全选'}
+                        </span>
+                     </button>
+                     <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                       {cats.map((cat) => (
+                         <button
+                           key={cat}
+                           onClick={() => toggleCategory(cat)}
+                           className={`py-1.5 px-1 rounded text-sm font-medium border transition-all ${
+                             config.selectedCategories.includes(cat)
+                               ? 'bg-indigo-100 border-indigo-300 text-indigo-700'
+                               : 'bg-white border-slate-200 text-slate-400'
+                           }`}
+                         >
+                           {ROW_LABELS[cat] || cat}
+                         </button>
+                       ))}
+                     </div>
                    </div>
-                 </div>
-               ))}
+                 );
+               })}
              </div>
           </div>
         </div>
