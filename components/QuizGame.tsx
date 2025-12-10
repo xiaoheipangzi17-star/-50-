@@ -259,16 +259,45 @@ const QuizGame: React.FC = () => {
   };
 
   const playEffect = (type: 'success' | 'failure') => {
-    if (type === 'success') {
-      const audio = new AudioContext();
+    try {
+      // Compatibility check for AudioContext
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+
+      const audio = new AudioCtx();
       const osc = audio.createOscillator();
       const gain = audio.createGain();
+      
       osc.connect(gain);
       gain.connect(audio.destination);
-      osc.frequency.value = 800;
-      osc.start();
-      gain.gain.exponentialRampToValueAtTime(0.00001, audio.currentTime + 0.1);
-      osc.stop(audio.currentTime + 0.1);
+
+      const now = audio.currentTime;
+
+      if (type === 'success') {
+        // Success: Cheerful ascending sine wave
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now); // C5
+        osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.1); // C6
+        
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } else {
+        // Failure: Dull descending triangle wave
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.linearRampToValueAtTime(50, now + 0.25);
+        
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        
+        osc.start(now);
+        osc.stop(now + 0.25);
+      }
+    } catch (e) {
+      console.error("Audio playback error:", e);
     }
   };
 
