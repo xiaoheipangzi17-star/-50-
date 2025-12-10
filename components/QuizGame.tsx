@@ -136,33 +136,42 @@ const QuizGame: React.FC = () => {
     setMnemonic(null);
   };
 
-  // Helper to resolve 'random' to a concrete type
-  const resolveType = (type: CharType, exclude?: ConcreteCharType): ConcreteCharType => {
-    if (type !== 'random') return type as ConcreteCharType;
-    
-    const allTypes: ConcreteCharType[] = ['hiragana', 'katakana', 'romaji'];
-    // If we need to exclude a type (to prevent Q==A), filter it out
-    const available = exclude ? allTypes.filter(t => t !== exclude) : allTypes;
-    return available[Math.floor(Math.random() * available.length)];
-  };
-
   const generateQuestion = (activeConfig: QuizConfig = config) => {
-    // 1. Resolve 'Random' selections to concrete types for this round
-    let qConcrete = resolveType(activeConfig.questionType);
-    // Try to resolve Answer type avoiding the Question type if possible
-    let aConcrete = resolveType(activeConfig.answerType, qConcrete);
+    let qConcrete: ConcreteCharType;
+    let aConcrete: ConcreteCharType;
 
-    // If strictly selected (non-random) types were same (e.g. user chose H and H),
-    // logic above doesn't fix it. But we validate at start.
-    // However, if "Random" resulted in same type, we re-roll answer.
-    if (qConcrete === aConcrete) {
-       const others = (['hiragana', 'katakana', 'romaji'] as ConcreteCharType[]).filter(t => t !== qConcrete);
-       aConcrete = others[Math.floor(Math.random() * others.length)];
+    // Helper: Pick a random type, optionally excluding one
+    const pickRandom = (exclude?: ConcreteCharType): ConcreteCharType => {
+      const types: ConcreteCharType[] = ['hiragana', 'katakana', 'romaji'];
+      const pool = exclude ? types.filter(t => t !== exclude) : types;
+      return pool[Math.floor(Math.random() * pool.length)];
+    };
+
+    // 1. Resolve concrete types based on config
+    // Logic: Respect Fixed selections first. Resolve Randoms based on what is left.
+    if (activeConfig.questionType === 'random' && activeConfig.answerType === 'random') {
+      // Both random: Pick Q, then pick A != Q
+      qConcrete = pickRandom();
+      aConcrete = pickRandom(qConcrete);
+    } else if (activeConfig.questionType === 'random') {
+      // Q random, A fixed
+      aConcrete = activeConfig.answerType as ConcreteCharType;
+      // Resolve Q, excluding A to avoid same-type questions
+      qConcrete = pickRandom(aConcrete);
+    } else if (activeConfig.answerType === 'random') {
+      // Q fixed, A random
+      qConcrete = activeConfig.questionType as ConcreteCharType;
+      // Resolve A, excluding Q
+      aConcrete = pickRandom(qConcrete);
+    } else {
+      // Both fixed
+      qConcrete = activeConfig.questionType as ConcreteCharType;
+      aConcrete = activeConfig.answerType as ConcreteCharType;
     }
 
     // 2. Handle Mixed Mode (The Swap)
-    // In Mixed Mode, we swap the resolved types 50% of the time.
-    // This ensures we only use the user's selected pools (unless Random was picked).
+    // Only in Mixed Mode do we potentially swap the roles.
+    // In Regular Mode, Q stays Q (as resolved above) and A stays A.
     if (activeConfig.isMixedMode) {
       if (Math.random() > 0.5) {
         [qConcrete, aConcrete] = [aConcrete, qConcrete];
@@ -227,6 +236,7 @@ const QuizGame: React.FC = () => {
       const aType = currentRoundTypes.a;
 
       // Determine logic for Mnemonic
+      // Prioritize showing mnemonic for the Kana character involved (usually Q or A that is NOT Romaji)
       if (aType === 'hiragana' || qType === 'hiragana') {
         targetForMnemonic = currentQuestion;
         targetType = 'Hiragana';
