@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { KANA_DATA } from '../constants';
 import { Kana } from '../types';
 import { getVocabulary } from '../services/geminiService';
@@ -12,6 +12,17 @@ const KanaGrid: React.FC = () => {
   const [selectedKana, setSelectedKana] = useState<Kana | null>(null);
   const [vocab, setVocab] = useState<{word: string, reading: string, meaning: string} | null>(null);
   const [loading, setLoading] = useState(false);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+  // Load voices on mount
+  useEffect(() => {
+    const loadVoices = () => {
+      setVoices(window.speechSynthesis.getVoices());
+    };
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    return () => { window.speechSynthesis.onvoiceschanged = null; };
+  }, []);
 
   // Filter Data based on mode
   const filteredData = KANA_DATA.filter(k => {
@@ -25,6 +36,23 @@ const KanaGrid: React.FC = () => {
   const playAudio = (text: string) => {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'ja-JP';
+
+    // Prioritize high-quality female voices (Google > System Defaults)
+    const jaVoices = voices.filter(v => v.lang.includes('ja') || v.lang.includes('JP'));
+    const bestVoice = jaVoices.find(v => v.name.includes('Google')) || // Chrome High Quality
+                      jaVoices.find(v => v.name.includes('Kyoko')) ||  // MacOS
+                      jaVoices.find(v => v.name.includes('Haruka')) || // Windows
+                      jaVoices.find(v => v.name.includes('Ayumi')) ||  // Windows
+                      jaVoices.find(v => !v.name.toLowerCase().includes('ichiro')); // Avoid male voices
+
+    if (bestVoice) {
+      utterance.voice = bestVoice;
+    }
+
+    utterance.pitch = 1.1; // Realistic female pitch
+    utterance.rate = 1.0;
+    
+    window.speechSynthesis.cancel(); // Stop any currently playing audio
     window.speechSynthesis.speak(utterance);
   };
 

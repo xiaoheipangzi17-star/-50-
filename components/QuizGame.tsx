@@ -79,7 +79,8 @@ const PixelAnimeGirl: React.FC<{ level: number, mood: 'happy' | 'shocked' | 'ang
     beret: "#F9A8D4",
     beretShadow: "#DB2777",
     bag: "#78350F",
-    bagHighlight: "#92400E"
+    bagHighlight: "#92400E",
+    glassesFrame: "#1E293B"
   };
 
   return (
@@ -244,7 +245,7 @@ const PixelAnimeGirl: React.FC<{ level: number, mood: 'happy' | 'shocked' | 'ang
             <rect x="35" y="15" width="15" height="15" rx="2" fill="#F59E0B" /> {/* Buckle */}
             <rect x="5" y="5" width="75" height="2" fill="#FDE68A" opacity="0.5" /> {/* Stitching */}
         </g>
-        <path d="M220 220 Q240 250 260 360" stroke={c.bag} strokeWidth="6" fill="none" strokeCap="round" />
+        <path d="M220 220 Q240 250 260 360" stroke={c.bag} strokeWidth="6" fill="none" strokeLinecap="round" />
       </g>
 
       {/* Layer 7: Blazer (Detailed) */}
@@ -281,9 +282,9 @@ const PixelAnimeGirl: React.FC<{ level: number, mood: 'happy' | 'shocked' | 'ang
       
       {/* Layer 10: Glasses (Wireframe) */}
       <g id="layer-10-glasses" style={{ opacity: level >= 10 ? 1 : 0, transition: 'all 0.3s' }}>
-        <rect x="160" y="125" width="28" height="18" stroke={glassesFrame} strokeWidth="2" fill="white" fillOpacity="0.1" rx="4" />
-        <rect x="212" y="125" width="28" height="18" stroke={glassesFrame} strokeWidth="2" fill="white" fillOpacity="0.1" rx="4" />
-        <line x1="188" y1="134" x2="212" y2="134" stroke={glassesFrame} strokeWidth="2" />
+        <rect x="160" y="125" width="28" height="18" stroke={c.glassesFrame} strokeWidth="2" fill="white" fillOpacity="0.1" rx="4" />
+        <rect x="212" y="125" width="28" height="18" stroke={c.glassesFrame} strokeWidth="2" fill="white" fillOpacity="0.1" rx="4" />
+        <line x1="188" y1="134" x2="212" y2="134" stroke={c.glassesFrame} strokeWidth="2" />
         {/* Reflection */}
         <line x1="165" y1="130" x2="175" y2="140" stroke="white" strokeWidth="1" opacity="0.8" />
       </g>
@@ -294,7 +295,7 @@ const PixelAnimeGirl: React.FC<{ level: number, mood: 'happy' | 'shocked' | 'ang
           <path d="M175 125 L178 110" stroke={c.hairDark} strokeWidth="1" opacity="0.3" />
           <path d="M235 125 L232 110" stroke={c.hairDark} strokeWidth="1" opacity="0.3" />
           {/* Hair Highlight Ring */}
-          <path d="M160 90 Q200 85 240 90" stroke={c.skinHighlight} strokeWidth="3" opacity="0.4" fill="none" strokeCap="round" />
+          <path d="M160 90 Q200 85 240 90" stroke={c.skinHighlight} strokeWidth="3" opacity="0.4" fill="none" strokeLinecap="round" />
       </g>
 
     </svg>
@@ -333,7 +334,20 @@ const QuizGame: React.FC = () => {
   const [mnemonic, setMnemonic] = useState<MnemonicResponse | null>(null);
   const [loadingMnemonic, setLoadingMnemonic] = useState(false);
 
+  // Audio Voices State
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+
   // --- Effects ---
+
+  // Load voices on mount
+  useEffect(() => {
+    const loadVoices = () => {
+      setVoices(window.speechSynthesis.getVoices());
+    };
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    return () => { window.speechSynthesis.onvoiceschanged = null; };
+  }, []);
 
   // Timer logic for Heartbeat mode
   useEffect(() => {
@@ -365,8 +379,23 @@ const QuizGame: React.FC = () => {
     const text = VOICE_LINES[type][0];
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'ja-JP';
-    u.pitch = 1.4; // Make it sound younger/anime-like
-    u.rate = 1.1;
+    
+    // Voice Selection: Prioritize high-quality female voices
+    const jaVoices = voices.filter(v => v.lang.includes('ja') || v.lang.includes('JP'));
+    const bestVoice = jaVoices.find(v => v.name.includes('Google')) || 
+                      jaVoices.find(v => v.name.includes('Kyoko')) ||
+                      jaVoices.find(v => v.name.includes('Haruka')) ||
+                      jaVoices.find(v => v.name.includes('Ayumi')) ||
+                      jaVoices.find(v => !v.name.toLowerCase().includes('ichiro'));
+
+    if (bestVoice) {
+      u.voice = bestVoice;
+    }
+
+    u.pitch = 1.4; // Make it sound younger/anime-like (Slightly higher than learning mode)
+    u.rate = 1.1; // Slightly faster for energy
+    
+    window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
   };
 
