@@ -1,0 +1,5 @@
+{
+  "name": "Copy of 日语五十音 AI 助手",
+  "description": "一个专注于平假名和片假名学习的 Web 应用。包含互动图表、记忆测试，以及由 Gemini 驱动的 AI 记忆法和词汇生成助手。",
+  "requestFramePermissions": []
+}
