@@ -1,13 +1,26 @@
+
 import React, { useState } from 'react';
 import { KANA_DATA } from '../constants';
 import { Kana } from '../types';
 import { getVocabulary } from '../services/geminiService';
 
+const SEION_CATEGORIES = ['a', 'ka', 'sa', 'ta', 'na', 'ha', 'ma', 'ya', 'ra', 'wa', 'n'];
+
 const KanaGrid: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'hiragana' | 'katakana'>('hiragana');
+  const [displayMode, setDisplayMode] = useState<'seion' | 'dakuon'>('seion');
   const [selectedKana, setSelectedKana] = useState<Kana | null>(null);
   const [vocab, setVocab] = useState<{word: string, reading: string, meaning: string} | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Filter Data based on mode
+  const filteredData = KANA_DATA.filter(k => {
+    if (displayMode === 'seion') {
+      return SEION_CATEGORIES.includes(k.category);
+    } else {
+      return !SEION_CATEGORIES.includes(k.category); // Dakuon & Handakuon
+    }
+  });
 
   const playAudio = (text: string) => {
     const utterance = new SpeechSynthesisUtterance(text);
@@ -32,46 +45,68 @@ const KanaGrid: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-4">
-      <div className="flex justify-center mb-6 space-x-4">
-        <button
-          onClick={() => setActiveTab('hiragana')}
-          className={`px-6 py-2 rounded-full font-bold transition-colors ${
-            activeTab === 'hiragana' ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-600 border border-indigo-200'
-          }`}
-        >
-          平假名 (Hiragana)
-        </button>
-        <button
-          onClick={() => setActiveTab('katakana')}
-          className={`px-6 py-2 rounded-full font-bold transition-colors ${
-            activeTab === 'katakana' ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-600 border border-indigo-200'
-          }`}
-        >
-          片假名 (Katakana)
-        </button>
+      {/* Top Controls */}
+      <div className="flex flex-col items-center gap-4 mb-8">
+        <div className="flex justify-center space-x-2 bg-slate-100 p-1 rounded-full">
+          <button
+            onClick={() => setActiveTab('hiragana')}
+            className={`px-6 py-2 rounded-full font-bold transition-all text-sm ${
+              activeTab === 'hiragana' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            平假名 (Hiragana)
+          </button>
+          <button
+            onClick={() => setActiveTab('katakana')}
+            className={`px-6 py-2 rounded-full font-bold transition-all text-sm ${
+              activeTab === 'katakana' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            片假名 (Katakana)
+          </button>
+        </div>
+
+        <div className="flex space-x-4">
+           <button 
+             onClick={() => setDisplayMode('seion')}
+             className={`text-sm font-medium border-b-2 pb-1 transition-colors ${displayMode === 'seion' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+           >
+             清音 (基础)
+           </button>
+           <button 
+             onClick={() => setDisplayMode('dakuon')}
+             className={`text-sm font-medium border-b-2 pb-1 transition-colors ${displayMode === 'dakuon' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+           >
+             浊音/半浊音 (进阶)
+           </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Left: The Grid */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <div className="grid grid-cols-5 gap-3">
-            {KANA_DATA.map((k) => (
-              <button
-                key={k.romaji}
-                onClick={() => handleKanaClick(k)}
-                className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all hover:shadow-md ${
-                  selectedKana?.romaji === k.romaji 
-                    ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200' 
-                    : 'border-slate-100 hover:border-indigo-300 bg-slate-50'
-                }`}
-              >
-                <span className="text-xl font-bold kana-font text-slate-700">
-                  {activeTab === 'hiragana' ? k.hiragana : k.katakana}
-                </span>
-                <span className="text-xs text-slate-400 font-mono mt-1">{k.romaji}</span>
-              </button>
-            ))}
-          </div>
+          {filteredData.length > 0 ? (
+            <div className="grid grid-cols-5 gap-3">
+              {filteredData.map((k) => (
+                <button
+                  key={k.romaji}
+                  onClick={() => handleKanaClick(k)}
+                  className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all hover:shadow-md ${
+                    selectedKana?.romaji === k.romaji 
+                      ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200' 
+                      : 'border-slate-100 hover:border-indigo-300 bg-slate-50'
+                  }`}
+                >
+                  <span className="text-xl font-bold kana-font text-slate-700">
+                    {activeTab === 'hiragana' ? k.hiragana : k.katakana}
+                  </span>
+                  <span className="text-xs text-slate-400 font-mono mt-1">{k.romaji}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-10 text-slate-400">暂无数据</div>
+          )}
         </div>
 
         {/* Right: Info Panel */}

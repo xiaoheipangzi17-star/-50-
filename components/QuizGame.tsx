@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { KANA_DATA } from '../constants';
 import { Kana, MnemonicResponse } from '../types';
@@ -9,6 +10,7 @@ interface QuizConfig {
   questionType: CharType;
   answerType: CharType;
   selectedCategories: string[];
+  isMixedMode: boolean;
 }
 
 const CHAR_TYPE_LABELS: Record<CharType, string> = {
@@ -19,18 +21,18 @@ const CHAR_TYPE_LABELS: Record<CharType, string> = {
 
 const CATEGORIES = Array.from(new Set(KANA_DATA.map(k => k.category)));
 
+// Define Category Groups for cleaner UI
+const CATEGORY_GROUPS = {
+  '清音 (基础)': ['a', 'ka', 'sa', 'ta', 'na', 'ha', 'ma', 'ya', 'ra', 'wa', 'n'],
+  '浊音 (Voiced)': ['ga', 'za', 'da', 'ba'],
+  '半浊音': ['pa']
+};
+
 const ROW_LABELS: Record<string, string> = {
-  'a': 'あ行',
-  'ka': 'か行',
-  'sa': 'さ行',
-  'ta': 'た行',
-  'na': 'な行',
-  'ha': 'は行',
-  'ma': 'ま行',
-  'ya': 'や行',
-  'ra': 'ら行',
-  'wa': 'わ行',
-  'n': 'ん',
+  'a': 'あ行', 'ka': 'か行', 'sa': 'さ行', 'ta': 'た行', 'na': 'な行',
+  'ha': 'は行', 'ma': 'ま行', 'ya': 'や行', 'ra': 'ら行', 'wa': 'わ行', 'n': 'ん',
+  'ga': 'が行', 'za': 'ざ行', 'da': 'だ行', 'ba': 'ば行',
+  'pa': 'ぱ行'
 };
 
 const QuizGame: React.FC = () => {
@@ -39,11 +41,16 @@ const QuizGame: React.FC = () => {
   const [config, setConfig] = useState<QuizConfig>({
     questionType: 'hiragana',
     answerType: 'romaji',
-    selectedCategories: [...CATEGORIES], // Default select all
+    selectedCategories: [...CATEGORY_GROUPS['清音 (基础)']], // Default Seion only
+    isMixedMode: false,
   });
 
   // Gameplay State
   const [currentQuestion, setCurrentQuestion] = useState<Kana | null>(null);
+  
+  // Track types for the current specific question (needed for mixed mode)
+  const [currentRoundTypes, setCurrentRoundTypes] = useState<{q: CharType, a: CharType}>({q: 'hiragana', a: 'romaji'});
+
   const [options, setOptions] = useState<Kana[]>([]);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -81,8 +88,17 @@ const QuizGame: React.FC = () => {
     setConfig(prev => ({ ...prev, selectedCategories: [] }));
   };
 
+  const setComprehensiveTest = () => {
+    setConfig({
+      questionType: 'hiragana', // ignored in mixed mode
+      answerType: 'romaji',   // ignored in mixed mode
+      selectedCategories: [...CATEGORIES],
+      isMixedMode: true
+    });
+  };
+
   const startGame = () => {
-    if (config.questionType === config.answerType) {
+    if (!config.isMixedMode && config.questionType === config.answerType) {
       alert("题目类型和答案类型不能相同！");
       return;
     }
@@ -103,32 +119,40 @@ const QuizGame: React.FC = () => {
   };
 
   const generateQuestion = () => {
-    // Filter available Kana based on selected categories
+    // 1. Determine Types for this round
+    let qType = config.questionType;
+    let aType = config.answerType;
+
+    if (config.isMixedMode) {
+      const types: CharType[] = ['hiragana', 'katakana', 'romaji'];
+      // Randomly pick Question Type
+      qType = types[Math.floor(Math.random() * types.length)];
+      // Randomly pick Answer Type (must be different)
+      const otherTypes = types.filter(t => t !== qType);
+      aType = otherTypes[Math.floor(Math.random() * otherTypes.length)];
+    }
+    
+    setCurrentRoundTypes({ q: qType, a: aType });
+
+    // 2. Filter available Kana based on selected categories
     const pool = KANA_DATA.filter(k => config.selectedCategories.includes(k.category));
     
-    if (pool.length === 0) return; // Should not happen due to validation
+    if (pool.length === 0) return; 
 
     const randomIndex = Math.floor(Math.random() * pool.length);
     const correct = pool[randomIndex];
     
-    // Generate distractors
-    // Priority: Pick from the selected pool (contextual distractors)
-    // Fallback: Pick from KANA_DATA if pool is too small (e.g. only 'ya' row selected has 3 items, need 4 options)
+    // 3. Generate distractors
     const availableDistractorsInPool = pool.filter(k => k.romaji !== correct.romaji);
-    
     const distractors = new Set<Kana>();
     
-    // Try to fill with in-pool distractors first
     if (availableDistractorsInPool.length >= 3) {
       while (distractors.size < 3) {
         const d = availableDistractorsInPool[Math.floor(Math.random() * availableDistractorsInPool.length)];
         distractors.add(d);
       }
     } else {
-      // Not enough items in the selected rows to form unique options. 
-      // Add all from pool, then fill rest from global data
       availableDistractorsInPool.forEach(d => distractors.add(d));
-      
       while (distractors.size < 3) {
         const d = KANA_DATA[Math.floor(Math.random() * KANA_DATA.length)];
         if (d.romaji !== correct.romaji) {
@@ -153,7 +177,7 @@ const QuizGame: React.FC = () => {
       setStreak(s => s + 1);
       setRoundState('success');
       playEffect('success');
-      setTimeout(generateQuestion, 1000); // Auto advance on success
+      setTimeout(generateQuestion, 1000); 
     } else {
       setStreak(0);
       setRoundState('failure');
@@ -162,16 +186,20 @@ const QuizGame: React.FC = () => {
       let targetForMnemonic: Kana | null = null;
       let targetType: 'Hiragana' | 'Katakana' | null = null;
 
-      if (config.answerType === 'hiragana') {
+      const qType = currentRoundTypes.q;
+      const aType = currentRoundTypes.a;
+
+      // Determine logic for Mnemonic:
+      if (aType === 'hiragana') {
         targetForMnemonic = currentQuestion;
         targetType = 'Hiragana';
-      } else if (config.answerType === 'katakana') {
+      } else if (aType === 'katakana') {
         targetForMnemonic = currentQuestion;
         targetType = 'Katakana';
-      } else if (config.questionType === 'hiragana') {
+      } else if (qType === 'hiragana') {
         targetForMnemonic = currentQuestion;
         targetType = 'Hiragana';
-      } else if (config.questionType === 'katakana') {
+      } else if (qType === 'katakana') {
         targetForMnemonic = currentQuestion;
         targetType = 'Katakana';
       }
@@ -206,15 +234,39 @@ const QuizGame: React.FC = () => {
   // --- RENDER: MENU ---
   if (status === 'menu') {
     return (
-      <div className="max-w-2xl mx-auto p-6 bg-white rounded-2xl shadow-xl border border-indigo-50 mt-4 animate-fade-in">
+      <div className="max-w-3xl mx-auto p-6 bg-white rounded-2xl shadow-xl border border-indigo-50 mt-4 animate-fade-in">
         <div className="text-center mb-6">
           <span className="text-5xl mb-2 block">🎮</span>
           <h2 className="text-2xl font-bold text-slate-800">配置你的挑战</h2>
         </div>
 
         <div className="space-y-6 mb-8">
-          {/* Types Selection */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Preset Button */}
+           <div className="flex justify-center">
+             <button 
+                onClick={setComprehensiveTest}
+                className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-6 py-2 rounded-full font-bold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all text-sm flex items-center gap-2"
+             >
+               <span>🌟</span> 综合全能测试 (一键配置)
+             </button>
+           </div>
+
+          {/* Mixed Mode Toggle */}
+          <div 
+            onClick={() => setConfig(p => ({ ...p, isMixedMode: !p.isMixedMode }))}
+            className={`cursor-pointer border-2 rounded-xl p-4 flex items-center justify-between transition-all ${config.isMixedMode ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 hover:border-indigo-200'}`}
+          >
+             <div>
+               <h3 className={`font-bold ${config.isMixedMode ? 'text-indigo-700' : 'text-slate-700'}`}>🔀 混合随机模式 (Mixed Mode)</h3>
+               <p className="text-xs text-slate-500">开启后，每道题的题目和选项类型将随机互换，难度升级！</p>
+             </div>
+             <div className={`w-12 h-6 rounded-full p-1 transition-colors ${config.isMixedMode ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${config.isMixedMode ? 'translate-x-6' : ''}`}></div>
+             </div>
+          </div>
+
+          {/* Types Selection (Disabled if Mixed Mode is On) */}
+          <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 transition-opacity ${config.isMixedMode ? 'opacity-40 pointer-events-none grayscale' : ''}`}>
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">题目显示 (Question)</label>
               <div className="flex flex-col gap-2">
@@ -254,7 +306,7 @@ const QuizGame: React.FC = () => {
             </div>
           </div>
 
-          {/* Row Selection */}
+          {/* Row Selection - Organized by Group */}
           <div className="border-t pt-4">
              <div className="flex justify-between items-center mb-3">
                <label className="block text-sm font-bold text-slate-700">考察范围 (Scope)</label>
@@ -265,19 +317,26 @@ const QuizGame: React.FC = () => {
                </div>
              </div>
              
-             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-               {CATEGORIES.map((cat) => (
-                 <button
-                   key={cat}
-                   onClick={() => toggleCategory(cat)}
-                   className={`py-1.5 px-1 rounded text-sm font-medium border transition-all ${
-                     config.selectedCategories.includes(cat)
-                       ? 'bg-indigo-100 border-indigo-300 text-indigo-700'
-                       : 'bg-white border-slate-200 text-slate-400'
-                   }`}
-                 >
-                   {ROW_LABELS[cat] || cat}
-                 </button>
+             <div className="space-y-4">
+               {Object.entries(CATEGORY_GROUPS).map(([groupName, cats]) => (
+                 <div key={groupName}>
+                   <h4 className="text-xs text-slate-400 font-bold mb-2 uppercase">{groupName}</h4>
+                   <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                     {cats.map((cat) => (
+                       <button
+                         key={cat}
+                         onClick={() => toggleCategory(cat)}
+                         className={`py-1.5 px-1 rounded text-sm font-medium border transition-all ${
+                           config.selectedCategories.includes(cat)
+                             ? 'bg-indigo-100 border-indigo-300 text-indigo-700'
+                             : 'bg-white border-slate-200 text-slate-400'
+                         }`}
+                       >
+                         {ROW_LABELS[cat] || cat}
+                       </button>
+                     ))}
+                   </div>
+                 </div>
                ))}
              </div>
           </div>
@@ -285,9 +344,9 @@ const QuizGame: React.FC = () => {
 
         <button
           onClick={startGame}
-          disabled={config.questionType === config.answerType || config.selectedCategories.length === 0}
+          disabled={(!config.isMixedMode && config.questionType === config.answerType) || config.selectedCategories.length === 0}
           className={`w-full py-4 rounded-xl text-lg font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${
-            config.questionType === config.answerType || config.selectedCategories.length === 0
+            (!config.isMixedMode && config.questionType === config.answerType) || config.selectedCategories.length === 0
               ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
               : 'bg-indigo-600 hover:bg-indigo-700 text-white hover:shadow-indigo-200 hover:-translate-y-1'
           }`}
@@ -296,8 +355,8 @@ const QuizGame: React.FC = () => {
         </button>
         
         <div className="mt-2 text-center h-5">
-           {config.questionType === config.answerType && (
-            <p className="text-red-400 text-xs">题目和答案不能相同</p>
+           {!config.isMixedMode && config.questionType === config.answerType && (
+            <p className="text-red-400 text-xs">题目和答案类型不能相同 (混合模式下自动忽略)</p>
            )}
            {config.selectedCategories.length === 0 && (
              <p className="text-red-400 text-xs">请至少选择一行</p>
@@ -310,9 +369,9 @@ const QuizGame: React.FC = () => {
   // --- RENDER: GAME ---
   if (!currentQuestion) return <div>Loading...</div>;
 
-  const questionText = getDisplayText(currentQuestion, config.questionType);
-  const isQuestionRomaji = config.questionType === 'romaji';
-  const isAnswerRomaji = config.answerType === 'romaji';
+  const questionText = getDisplayText(currentQuestion, currentRoundTypes.q);
+  const isQuestionRomaji = currentRoundTypes.q === 'romaji';
+  const isAnswerRomaji = currentRoundTypes.a === 'romaji';
 
   return (
     <div className="max-w-2xl mx-auto p-4 animate-fade-in">
@@ -320,12 +379,12 @@ const QuizGame: React.FC = () => {
       <div className="flex justify-between items-center mb-8 bg-white p-4 rounded-xl shadow-sm border border-slate-100">
         <button 
           onClick={stopGame}
-          className="text-slate-400 hover:text-slate-600 font-bold text-sm flex items-center gap-1 transition-colors"
+          className="bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-800 font-bold text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-1"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+            <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
           </svg>
-          退出
+          退出挑战
         </button>
         
         <div className="flex flex-col items-center">
@@ -347,7 +406,8 @@ const QuizGame: React.FC = () => {
            </h1>
         </div>
         <p className="text-slate-400 font-medium">
-          选择对应的 <span className="text-indigo-500">{CHAR_TYPE_LABELS[config.answerType]}</span>
+          {config.isMixedMode && <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded mr-2">随机混合</span>}
+          选择对应的 <span className="text-indigo-500 font-bold">{CHAR_TYPE_LABELS[currentRoundTypes.a]}</span>
         </p>
       </div>
 
@@ -365,7 +425,7 @@ const QuizGame: React.FC = () => {
             }
           }
 
-          const optionText = getDisplayText(opt, config.answerType);
+          const optionText = getDisplayText(opt, currentRoundTypes.a);
 
           return (
             <button
@@ -394,7 +454,7 @@ const QuizGame: React.FC = () => {
              <div>
                <h3 className="text-red-800 font-bold text-lg">回答错误</h3>
                <p className="text-red-600 text-sm">
-                 正确答案: <span className="font-bold text-lg mx-1">{getDisplayText(currentQuestion, config.answerType)}</span> 
+                 正确答案: <span className="font-bold text-lg mx-1">{getDisplayText(currentQuestion, currentRoundTypes.a)}</span> 
                  ({currentQuestion.romaji})
                </p>
              </div>

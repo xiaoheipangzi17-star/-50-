@@ -1,6 +1,8 @@
+
 import { Kana } from './types';
 
 export const KANA_DATA: Kana[] = [
+  // Seion (Basic)
   { romaji: 'a', hiragana: 'あ', katakana: 'ア', category: 'a' },
   { romaji: 'i', hiragana: 'い', katakana: 'イ', category: 'a' },
   { romaji: 'u', hiragana: 'う', katakana: 'ウ', category: 'a' },
@@ -56,4 +58,36 @@ export const KANA_DATA: Kana[] = [
   { romaji: 'wa', hiragana: 'わ', katakana: 'ワ', category: 'wa' },
   { romaji: 'wo', hiragana: 'を', katakana: 'ヲ', category: 'wa' },
   { romaji: 'n', hiragana: 'ん', katakana: 'ン', category: 'n' },
+
+  // Dakuon (Voiced)
+  { romaji: 'ga', hiragana: 'が', katakana: 'ガ', category: 'ga' },
+  { romaji: 'gi', hiragana: 'ぎ', katakana: 'ギ', category: 'ga' },
+  { romaji: 'gu', hiragana: 'ぐ', katakana: 'グ', category: 'ga' },
+  { romaji: 'ge', hiragana: 'げ', katakana: 'ゲ', category: 'ga' },
+  { romaji: 'go', hiragana: 'ご', katakana: 'ゴ', category: 'ga' },
+
+  { romaji: 'za', hiragana: 'ざ', katakana: 'ザ', category: 'za' },
+  { romaji: 'ji', hiragana: 'じ', katakana: 'ジ', category: 'za' },
+  { romaji: 'zu', hiragana: 'ず', katakana: 'ズ', category: 'za' },
+  { romaji: 'ze', hiragana: 'ぜ', katakana: 'ゼ', category: 'za' },
+  { romaji: 'zo', hiragana: 'ぞ', katakana: 'ゾ', category: 'za' },
+
+  { romaji: 'da', hiragana: 'だ', katakana: 'ダ', category: 'da' },
+  { romaji: 'di', hiragana: 'ぢ', katakana: 'ヂ', category: 'da' }, // di (ji)
+  { romaji: 'du', hiragana: 'づ', katakana: 'ヅ', category: 'da' }, // du (zu)
+  { romaji: 'de', hiragana: 'で', katakana: 'デ', category: 'da' },
+  { romaji: 'do', hiragana: 'ど', katakana: 'ド', category: 'da' },
+
+  { romaji: 'ba', hiragana: 'ば', katakana: 'バ', category: 'ba' },
+  { romaji: 'bi', hiragana: 'び', katakana: 'ビ', category: 'ba' },
+  { romaji: 'bu', hiragana: 'ぶ', katakana: 'ブ', category: 'ba' },
+  { romaji: 'be', hiragana: 'べ', katakana: 'ベ', category: 'ba' },
+  { romaji: 'bo', hiragana: 'ぼ', katakana: 'ボ', category: 'ba' },
+
+  // Handakuon (Semi-voiced)
+  { romaji: 'pa', hiragana: 'ぱ', katakana: 'パ', category: 'pa' },
+  { romaji: 'pi', hiragana: 'ぴ', katakana: 'ピ', category: 'pa' },
+  { romaji: 'pu', hiragana: 'ぷ', katakana: 'プ', category: 'pa' },
+  { romaji: 'pe', hiragana: 'ぺ', katakana: 'ペ', category: 'pa' },
+  { romaji: 'po', hiragana: 'ぽ', katakana: 'ポ', category: 'pa' },
 ];
