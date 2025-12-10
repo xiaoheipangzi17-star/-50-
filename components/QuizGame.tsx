@@ -50,252 +50,238 @@ const VOICE_LINES = {
   lose: ['残念でした〜', 'zannen deshita', '太遗憾了~']
 };
 
-// --- SVG Anime Avatar Component (High Precision Version) ---
+// --- SVG Anime Avatar Component (Ultra High Precision Version) ---
 const PixelAnimeGirl: React.FC<{ level: number, mood: 'happy' | 'shocked' | 'angry' }> = ({ level, mood }) => {
-  // Colors - Enhanced Palette
+  // Enhanced Color Palette
   const c = {
-    skin: "#FFE0BD",
-    skinShadow: "#EUC094", // Darker skin for shading
-    skinHighlight: "#FFF0E0",
-    hair: "#6A4C93", 
-    hairDark: "#4D3669",
-    hairLight: "#9D7CC8",
-    eyeBase: mood === 'shocked' ? "#1E293B" : "#3B82F6",
-    eyeDark: "#1D4ED8",
-    blush: "#FF9999",
-    shirt: "#FFFFFF",
+    skin: "#FFF0E0",
+    skinShadow: "#FAD0B0",
+    skinDark: "#E8B090",
+    hair: "#3A2E44", // Deep Purple
+    hairMid: "#584666",
+    hairLight: "#8B7098",
+    hairHighlight: "#D0B0E0",
+    eyeWhite: "#FFFFFF",
+    eyeBase: mood === 'shocked' ? "#334155" : "#3B82F6",
+    eyeMid: "#2563EB",
+    eyeDark: "#1E3A8A",
+    blush: "#FF9090",
+    lip: "#F472B6",
+    shirt: "#FAFAFA",
     shirtShadow: "#E2E8F0",
-    vest: "#FFD700",
-    vestShadow: "#B45309",
-    skirt: "#3B82F6",
-    skirtShadow: "#1E40AF",
-    skirtLight: "#60A5FA",
+    vest: "#FEF08A", // Pastel Yellow
+    vestShadow: "#EAB308",
+    vestDark: "#CA8A04",
+    skirt: "#60A5FA",
+    skirtShadow: "#2563EB",
+    skirtDark: "#1E40AF",
     socks: "#1E293B",
-    shoes: "#573024",
-    blazer: "#1E3A8A",
-    blazerShadow: "#0F172A",
-    scarf: "#EF4444",
-    scarfShadow: "#991B1B",
-    beret: "#F9A8D4",
-    beretShadow: "#DB2777",
-    bag: "#78350F",
-    bagHighlight: "#92400E",
-    glassesFrame: "#1E293B"
+    shoes: "#451a03",
+    shoesLight: "#78350f",
+    blazer: "#1e3a8a",
+    blazerLight: "#2563eb",
+    scarf: "#ef4444",
+    scarfShadow: "#b91c1c",
+    glasses: "#475569"
   };
 
   return (
-    <svg viewBox="0 0 400 600" className="w-full h-full drop-shadow-xl" shapeRendering="crispEdges">
-      {/* Background Aura */}
-      <circle cx="200" cy="280" r="160" fill={mood === 'shocked' ? '#FECACA' : '#E0E7FF'} opacity="0.4" />
-      
-      {/* --- BODY BASE (Level 0) --- */}
-      <g id="body">
-        {/* Legs with shading */}
-        <rect x="160" y="350" width="30" height="200" fill={c.skin} />
-        <rect x="160" y="350" width="5" height="200" fill={c.skinShadow} opacity="0.3" /> {/* Leg Shadow */}
-        <rect x="210" y="350" width="30" height="200" fill={c.skin} />
-        <rect x="235" y="350" width="5" height="200" fill={c.skinShadow} opacity="0.3" /> {/* Leg Shadow */}
-        
-        {/* Torso */}
-        <rect x="150" y="200" width="100" height="160" fill={c.skin} />
-        <rect x="150" y="240" width="100" height="20" fill={c.skinShadow} opacity="0.1" /> {/* Rib shadow */}
+    <svg viewBox="0 0 400 600" className="w-full h-full drop-shadow-2xl" shapeRendering="geometricPrecision">
+      <defs>
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+        <linearGradient id="hairGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+           <stop offset="0%" stopColor={c.hairMid} />
+           <stop offset="100%" stopColor={c.hair} />
+        </linearGradient>
+        <linearGradient id="legGrad" x1="0" y1="0" x2="1" y2="0">
+           <stop offset="0%" stopColor={c.skinShadow} />
+           <stop offset="20%" stopColor={c.skin} />
+           <stop offset="80%" stopColor={c.skin} />
+           <stop offset="100%" stopColor={c.skinShadow} />
+        </linearGradient>
+      </defs>
 
-        {/* Neck */}
-        <rect x="185" y="170" width="30" height="40" fill={c.skin} />
-        <rect x="185" y="170" width="30" height="10" fill={c.skinShadow} opacity="0.3" /> {/* Chin shadow */}
-
-        {/* Head Shape */}
-        <rect x="150" y="80" width="100" height="110" rx="20" fill={c.skin} />
-        
-        {/* Underwear (SFW Base) */}
-        <g id="underwear">
-             {/* Top */}
-            <rect x="155" y="210" width="90" height="60" fill="white" opacity="0.9" />
-            <rect x="155" y="260" width="90" height="10" fill="#E2E8F0" opacity="0.5" />
-            <path d="M155 210 Q200 240 245 210" fill="#F1F5F9" opacity="0.5" />
-            {/* Bottoms */}
-            <rect x="155" y="340" width="90" height="35" fill="white" opacity="0.9" />
-            <rect x="155" y="340" width="5" height="35" fill="#E2E8F0" />
-            <rect x="240" y="340" width="5" height="35" fill="#E2E8F0" />
-        </g>
-
-         {/* Arms with elbow definition */}
-        <g transform="rotate(5 120 210)">
-            <rect x="120" y="210" width="30" height="140" fill={c.skin} />
-            <rect x="120" y="210" width="10" height="140" fill={c.skinShadow} opacity="0.2" />
-        </g>
-        <g transform="rotate(-5 250 210)">
-            <rect x="250" y="210" width="30" height="140" fill={c.skin} />
-            <rect x="270" y="210" width="10" height="140" fill={c.skinShadow} opacity="0.2" />
-        </g>
+      {/* --- BACK HAIR --- */}
+      <g id="hair-back">
+        <path d="M120 120 L80 400 Q200 420 320 400 L280 120" fill="url(#hairGrad)" />
+        <path d="M80 400 L90 440 L110 410" fill={c.hair} />
+        <path d="M320 400 L310 440 L290 410" fill={c.hair} />
       </g>
 
-      {/* --- FACE DETAILS --- */}
-      <g id="face">
+      {/* --- BODY --- */}
+      <g id="body">
+        {/* Legs */}
+        <path d="M165 350 L162 550 L188 550 L190 350" fill="url(#legGrad)" />
+        <path d="M210 350 L212 550 L238 550 L235 350" fill="url(#legGrad)" />
+        
+        {/* Knees */}
+        <ellipse cx="175" cy="460" rx="6" ry="4" fill={c.skinShadow} opacity="0.3" />
+        <ellipse cx="225" cy="460" rx="6" ry="4" fill={c.skinShadow} opacity="0.3" />
+
+        {/* Torso */}
+        <path d="M150 180 Q140 250 145 360 L255 360 Q260 250 250 180 Z" fill={c.skin} />
+        <path d="M145 360 L255 360 L245 380 L155 380 Z" fill="white" opacity="0.9" /> {/* Panties base */}
+        
+        {/* Neck */}
+        <rect x="182" y="160" width="36" height="40" fill={c.skin} />
+        <path d="M182 160 L182 200 L190 200 L190 170" fill={c.skinShadow} opacity="0.5" />
+      </g>
+
+      {/* --- HEAD & FACE --- */}
+      <g id="head">
+        <path d="M140 80 L140 160 Q140 210 200 210 Q260 210 260 160 L260 80 Z" fill={c.skin} />
+        
         {/* Blush */}
         {(mood === 'shocked' || level <= 3) && (
-            <>
-              <rect x="155" y="155" width="25" height="10" fill={c.blush} opacity="0.5" rx="5" />
-              <rect x="220" y="155" width="25" height="10" fill={c.blush} opacity="0.5" rx="5" />
-              <path d="M160 160 L170 150 M165 165 L175 155" stroke={c.blush} strokeWidth="2" />
-              <path d="M225 160 L235 150 M230 165 L240 155" stroke={c.blush} strokeWidth="2" />
-            </>
+           <>
+            <ellipse cx="165" cy="165" rx="15" ry="8" fill={c.blush} opacity="0.6" filter="url(#glow)" />
+            <ellipse cx="235" cy="165" rx="15" ry="8" fill={c.blush} opacity="0.6" filter="url(#glow)" />
+            <line x1="160" y1="165" x2="170" y2="160" stroke={c.blush} strokeWidth="2" />
+            <line x1="230" y1="160" x2="240" y2="165" stroke={c.blush} strokeWidth="2" />
+           </>
         )}
 
-        {/* Eyes (High Detail) */}
-        <g id="eye-left">
-            <rect x="162" y="125" width="26" height="24" fill="white" rx="2"/>
-            <rect x="165" y="125" width="20" height="24" fill={c.eyeBase} />
-            <rect x="165" y="125" width="20" height="10" fill={c.eyeDark} />
-            <rect x="175" y="128" width="8" height="8" fill="white" opacity="0.9" /> {/* Large Highlight */}
-            <rect x="167" y="140" width="4" height="4" fill="white" opacity="0.6" /> {/* Small Highlight */}
+        {/* Eyes - Ultra Detailed */}
+        <g id="eyes" transform="translate(0, 5)">
+           {/* Whites */}
+           <path d="M155 135 Q175 125 190 135 Q190 150 172 150 Q155 150 155 135" fill="white" />
+           <path d="M210 135 Q225 125 245 135 Q245 150 228 150 Q210 150 210 135" fill="white" />
+           
+           {/* Iris */}
+           <circle cx="172" cy="138" r="11" fill={c.eyeBase} />
+           <circle cx="228" cy="138" r="11" fill={c.eyeBase} />
+           
+           {/* Pupil */}
+           <circle cx="172" cy="138" r="6" fill={c.eyeDark} />
+           <circle cx="228" cy="138" r="6" fill={c.eyeDark} />
+           
+           {/* Highlights */}
+           <circle cx="168" cy="134" r="3" fill="white" opacity="0.9" />
+           <circle cx="175" cy="142" r="1.5" fill="white" opacity="0.7" />
+           <circle cx="224" cy="134" r="3" fill="white" opacity="0.9" />
+           <circle cx="231" cy="142" r="1.5" fill="white" opacity="0.7" />
+
+           {/* Eyelashes */}
+           <path d="M152 135 Q172 122 192 135" stroke={c.hair} strokeWidth="3" fill="none" />
+           <path d="M152 135 L148 132" stroke={c.hair} strokeWidth="2" />
+           <path d="M208 135 Q228 122 248 135" stroke={c.hair} strokeWidth="3" fill="none" />
+           <path d="M248 135 L252 132" stroke={c.hair} strokeWidth="2" />
         </g>
-        <g id="eye-right">
-            <rect x="212" y="125" width="26" height="24" fill="white" rx="2"/>
-            <rect x="215" y="125" width="20" height="24" fill={c.eyeBase} />
-            <rect x="215" y="125" width="20" height="10" fill={c.eyeDark} />
-            <rect x="225" y="128" width="8" height="8" fill="white" opacity="0.9" />
-            <rect x="217" y="140" width="4" height="4" fill="white" opacity="0.6" />
-        </g>
-        
-        {/* Eyebrows */}
-        {mood === 'angry' ? (
-           <>
-             <path d="M160 115 L190 120" stroke={c.hairDark} strokeWidth="3" />
-             <path d="M240 115 L210 120" stroke={c.hairDark} strokeWidth="3" />
-           </>
-        ) : (
-           <>
-             <path d="M160 118 Q175 115 190 118" stroke={c.hairDark} strokeWidth="3" fill="none"/>
-             <path d="M210 118 Q225 115 240 118" stroke={c.hairDark} strokeWidth="3" fill="none"/>
-           </>
-        )}
 
         {/* Mouth */}
-        {mood === 'happy' && <path d="M190 165 Q200 175 210 165" stroke="#BE123C" strokeWidth="3" fill="none" strokeLinecap="round" />}
-        {mood === 'shocked' && <rect x="195" y="165" width="10" height="14" rx="5" fill="#BE123C" />}
-        {mood === 'angry' && <path d="M190 170 Q200 160 210 170" stroke="#BE123C" strokeWidth="3" fill="none" strokeLinecap="round" />}
-      </g>
-
-      {/* --- BACK HAIR (Lowest Layer) --- */}
-      <g id="hair-back">
-        <path d="M140 100 L110 280 L160 280 L150 100 Z" fill={c.hair} />
-        <path d="M260 100 L290 280 L240 280 L250 100 Z" fill={c.hair} />
-        <path d="M110 280 L160 280 L135 320 Z" fill={c.hairDark} />
-        <path d="M290 280 L240 280 L265 320 Z" fill={c.hairDark} />
-      </g>
-
-      {/* --- CLOTHING LAYERS (Ordered 1 to 10) --- */}
-
-      {/* Layer 1: Shirt (Detailed) */}
-      <g id="layer-1-shirt" style={{ opacity: level >= 1 ? 1 : 0, transition: 'all 0.3s' }}>
-        <rect x="150" y="200" width="100" height="150" fill={c.shirt} />
-        <rect x="150" y="200" width="100" height="150" fill={c.shirtShadow} opacity="0.2" mask="url(#shirt-fold)" /> 
-        {/* Sleeves */}
-        <rect x="120" y="210" width="30" height="60" fill={c.shirt} transform="rotate(5 120 210)" />
-        <rect x="250" y="210" width="30" height="60" fill={c.shirt} transform="rotate(-5 250 210)" />
-        {/* Collar Detail */}
-        <path d="M180 200 L200 230 L220 200" fill="none" stroke="#94A3B8" strokeWidth="1" />
-        {/* Buttons */}
-        <circle cx="200" cy="250" r="2" fill="#CBD5E1" />
-        <circle cx="200" cy="280" r="2" fill="#CBD5E1" />
-        <circle cx="200" cy="310" r="2" fill="#CBD5E1" />
-      </g>
-
-      {/* Layer 2: Socks (Detailed) */}
-      <g id="layer-2-socks" style={{ opacity: level >= 2 ? 1 : 0, transition: 'all 0.3s' }}>
-        <rect x="160" y="440" width="30" height="110" fill={c.socks} />
-        <rect x="160" y="440" width="30" height="5" fill="#334155" /> {/* Band */}
-        <rect x="210" y="440" width="30" height="110" fill={c.socks} />
-        <rect x="210" y="440" width="30" height="5" fill="#334155" /> {/* Band */}
-      </g>
-
-      {/* Layer 3: Vest (Detailed) */}
-      <g id="layer-3-vest" style={{ opacity: level >= 3 ? 1 : 0, transition: 'all 0.3s' }}>
-        <path d="M152 210 L152 335 L248 335 L248 210 L230 205 L200 260 L170 205 Z" fill={c.vest} />
-        <rect x="152" y="320" width="96" height="15" fill={c.vestShadow} opacity="0.2" /> {/* Bottom hem */}
-        <path d="M165 210 L170 320" stroke={c.vestShadow} strokeWidth="1" opacity="0.3" /> {/* Knit texture line */}
-        <path d="M235 210 L230 320" stroke={c.vestShadow} strokeWidth="1" opacity="0.3" />
-      </g>
-
-      {/* Layer 4: Skirt (Pleated High Res) */}
-      <g id="layer-4-skirt" style={{ opacity: level >= 4 ? 1 : 0, transition: 'all 0.3s' }}>
-        <path d="M148 330 L125 410 L275 410 L252 330 Z" fill={c.skirt} />
-        {/* Deep Pleat Shadows */}
-        <path d="M165 330 L158 410 L175 410 L180 330" fill={c.skirtShadow} opacity="0.3" />
-        <path d="M200 330 L195 410 L205 410 L200 330" fill={c.skirtShadow} opacity="0.3" />
-        <path d="M235 330 L228 410 L245 410 L250 330" fill={c.skirtShadow} opacity="0.3" />
-        {/* Highlights */}
-        <rect x="135" y="400" width="130" height="2" fill={c.skirtLight} opacity="0.5" />
-      </g>
-
-      {/* Layer 5: Shoes (Loafers) */}
-      <g id="layer-5-shoes" style={{ opacity: level >= 5 ? 1 : 0, transition: 'all 0.3s' }}>
-        <path d="M153 550 L153 570 Q153 580 168 580 L185 580 Q192 580 192 570 L192 560 L180 550 Z" fill={c.shoes} />
-        <rect x="160" y="552" width="20" height="5" fill="#3E2018" /> {/* Strap */}
-        <path d="M203 550 L203 570 Q203 580 218 580 L235 580 Q242 580 242 570 L242 560 L230 550 Z" fill={c.shoes} />
-        <rect x="210" y="552" width="20" height="5" fill="#3E2018" /> {/* Strap */}
-      </g>
-
-      {/* Layer 6: School Bag (Detailed leather) */}
-      <g id="layer-6-bag" style={{ opacity: level >= 6 ? 1 : 0, transition: 'all 0.3s' }}>
-        <g transform="translate(255, 360) rotate(-5)">
-            <rect x="0" y="0" width="85" height="65" rx="6" fill={c.bag} />
-            <rect x="0" y="0" width="85" height="25" rx="4" fill={c.bagHighlight} />
-            <rect x="35" y="15" width="15" height="15" rx="2" fill="#F59E0B" /> {/* Buckle */}
-            <rect x="5" y="5" width="75" height="2" fill="#FDE68A" opacity="0.5" /> {/* Stitching */}
+        <g transform="translate(0, 10)">
+           {mood === 'happy' && <path d="M190 175 Q200 185 210 175" stroke={c.lip} strokeWidth="2" fill="none" strokeLinecap="round" />}
+           {mood === 'shocked' && <circle cx="200" cy="180" r="6" fill={c.lip} />}
+           {mood === 'angry' && <path d="M190 180 Q200 170 210 180" stroke={c.lip} strokeWidth="2" fill="none" strokeLinecap="round" />}
         </g>
-        <path d="M220 220 Q240 250 260 360" stroke={c.bag} strokeWidth="6" fill="none" strokeLinecap="round" />
-      </g>
-
-      {/* Layer 7: Blazer (Detailed) */}
-      <g id="layer-7-blazer" style={{ opacity: level >= 7 ? 1 : 0, transition: 'all 0.3s' }}>
-        <path d="M142 205 L142 345 L190 345 L190 290 L200 250 L210 290 L210 345 L258 345 L258 205 Q200 190 142 205" fill={c.blazer} />
-        <path d="M142 205 L190 290" stroke={c.blazerShadow} strokeWidth="1" fill="none" opacity="0.5" /> {/* Lapel */}
-        <path d="M258 205 L210 290" stroke={c.blazerShadow} strokeWidth="1" fill="none" opacity="0.5" />
-        {/* Sleeves */}
-        <rect x="112" y="210" width="38" height="135" fill={c.blazer} transform="rotate(5 120 210)" rx="5"/>
-        <rect x="250" y="210" width="38" height="135" fill={c.blazer} transform="rotate(-5 250 210)" rx="5"/>
-        {/* Pocket */}
-        <rect x="220" y="310" width="30" height="2" fill={c.blazerShadow} opacity="0.5" />
-        {/* Gold Buttons */}
-        <circle cx="205" cy="300" r="4" fill="#F59E0B" stroke="#B45309" strokeWidth="1" />
-        <circle cx="205" cy="325" r="4" fill="#F59E0B" stroke="#B45309" strokeWidth="1" />
-      </g>
-
-      {/* Layer 8: Scarf (Fluffy) */}
-      <g id="layer-8-scarf" style={{ opacity: level >= 8 ? 1 : 0, transition: 'all 0.3s' }}>
-        <path d="M165 195 Q200 220 235 195 L235 215 Q200 240 165 215 Z" fill={c.scarfShadow} />
-        <rect x="160" y="195" width="80" height="35" rx="15" fill={c.scarf} />
-        <rect x="215" y="210" width="25" height="70" rx="5" fill={c.scarf} />
-        {/* Pattern */}
-        <line x1="170" y1="195" x2="170" y2="230" stroke={c.scarfShadow} strokeWidth="2" opacity="0.3" />
-        <line x1="220" y1="210" x2="220" y2="280" stroke={c.scarfShadow} strokeWidth="2" opacity="0.3" />
-      </g>
-
-      {/* Layer 9: Beret (Hat with detail) */}
-      <g id="layer-9-hat" style={{ opacity: level >= 9 ? 1 : 0, transition: 'all 0.3s' }}>
-         <ellipse cx="225" cy="85" rx="75" ry="35" fill={c.beret} transform="rotate(-10 200 100)" />
-         <ellipse cx="225" cy="88" rx="70" ry="30" fill={c.beretShadow} transform="rotate(-10 200 100)" opacity="0.2" /> {/* Depth */}
-         <rect x="215" y="55" width="8" height="12" fill={c.beret} transform="rotate(-10)" />
       </g>
       
-      {/* Layer 10: Glasses (Wireframe) */}
-      <g id="layer-10-glasses" style={{ opacity: level >= 10 ? 1 : 0, transition: 'all 0.3s' }}>
-        <rect x="160" y="125" width="28" height="18" stroke={c.glassesFrame} strokeWidth="2" fill="white" fillOpacity="0.1" rx="4" />
-        <rect x="212" y="125" width="28" height="18" stroke={c.glassesFrame} strokeWidth="2" fill="white" fillOpacity="0.1" rx="4" />
-        <line x1="188" y1="134" x2="212" y2="134" stroke={c.glassesFrame} strokeWidth="2" />
-        {/* Reflection */}
-        <line x1="165" y1="130" x2="175" y2="140" stroke="white" strokeWidth="1" opacity="0.8" />
+      {/* --- CLOTHING SYSTEM (Stacked Layers) --- */}
+
+      {/* 1. Shirt */}
+      <g style={{ opacity: level >= 1 ? 1 : 0, transition: 'opacity 0.5s' }}>
+         <path d="M150 190 L140 240 L135 350 L265 350 L260 240 L250 190" fill={c.shirt} />
+         {/* Shadow under breast */}
+         <path d="M150 270 Q200 290 250 270 L250 280 Q200 300 150 280 Z" fill={c.shirtShadow} opacity="0.5" />
+         {/* Collar */}
+         <path d="M182 190 L200 220 L218 190 L230 200 L200 240 L170 200 Z" fill="white" stroke={c.shirtShadow} strokeWidth="1" />
+         {/* Sleeves */}
+         <path d="M140 195 L110 220 L120 300 L145 280" fill={c.shirt} />
+         <path d="M260 195 L290 220 L280 300 L255 280" fill={c.shirt} />
       </g>
 
-      {/* --- HAIR FRONT (Bangs) --- */}
+      {/* 2. Socks */}
+      <g style={{ opacity: level >= 2 ? 1 : 0, transition: 'opacity 0.5s' }}>
+         <path d="M164 450 L162 560 L188 560 L191 450" fill={c.socks} />
+         <path d="M209 450 L212 560 L238 560 L236 450" fill={c.socks} />
+         {/* Ribbing */}
+         <path d="M164 450 L191 450" stroke="#334155" strokeWidth="4" />
+         <path d="M209 450 L236 450" stroke="#334155" strokeWidth="4" />
+      </g>
+
+      {/* 3. Vest (Sweater) */}
+      <g style={{ opacity: level >= 3 ? 1 : 0, transition: 'opacity 0.5s' }}>
+         <path d="M148 200 L142 340 L258 340 L252 200 L220 195 L200 250 L180 195 Z" fill={c.vest} />
+         <path d="M142 330 L258 330 L258 340 L142 340 Z" fill={c.vestDark} /> {/* Hem */}
+         {/* Texture */}
+         <path d="M160 210 L155 330" stroke={c.vestShadow} strokeWidth="1" strokeDasharray="2,2" />
+         <path d="M240 210 L245 330" stroke={c.vestShadow} strokeWidth="1" strokeDasharray="2,2" />
+         {/* School Badge */}
+         <path d="M230 260 L245 260 L242 275 L233 275 Z" fill={c.vestDark} />
+      </g>
+
+      {/* 4. Skirt (Detailed Pleats) */}
+      <g style={{ opacity: level >= 4 ? 1 : 0, transition: 'opacity 0.5s' }}>
+         <path d="M145 335 L125 420 L275 420 L255 335 Z" fill={c.skirt} />
+         {/* Shadows for pleats */}
+         <path d="M165 335 L155 420 L175 420 L180 335" fill={c.skirtShadow} opacity="0.4" />
+         <path d="M200 335 L195 420 L205 420 L210 335" fill={c.skirtShadow} opacity="0.4" />
+         <path d="M235 335 L225 420 L245 420 L250 335" fill={c.skirtShadow} opacity="0.4" />
+         {/* Stitching */}
+         <path d="M130 415 L270 415" stroke={c.skirtDark} strokeWidth="1" fill="none" />
+      </g>
+
+      {/* 5. Shoes */}
+      <g style={{ opacity: level >= 5 ? 1 : 0, transition: 'opacity 0.5s' }}>
+         <path d="M158 555 L158 580 Q158 590 170 590 L182 590 Q194 590 194 580 L194 570 L185 555 Z" fill={c.shoes} />
+         <rect x="165" y="560" width="20" height="5" fill={c.shoesLight} />
+         <path d="M208 555 L208 580 Q208 590 220 590 L232 590 Q244 590 244 580 L244 570 L235 555 Z" fill={c.shoes} />
+         <rect x="215" y="560" width="20" height="5" fill={c.shoesLight} />
+      </g>
+
+      {/* 6. Bag */}
+      <g style={{ opacity: level >= 6 ? 1 : 0, transition: 'opacity 0.5s' }}>
+         <rect x="260" y="380" width="80" height="50" rx="5" fill="#5D4037" transform="rotate(-10 260 380)" />
+         <rect x="260" y="380" width="80" height="15" rx="2" fill="#8D6E63" transform="rotate(-10 260 380)" />
+         <path d="M220 220 Q240 300 265 385" stroke="#5D4037" strokeWidth="4" fill="none" />
+      </g>
+
+      {/* 7. Blazer */}
+      <g style={{ opacity: level >= 7 ? 1 : 0, transition: 'opacity 0.5s' }}>
+         <path d="M135 200 L135 350 L190 350 L195 280 L205 280 L210 350 L265 350 L265 200 L240 190 L200 210 L160 190 Z" fill={c.blazer} />
+         <path d="M135 200 L195 280" stroke="#172554" strokeWidth="1" />
+         <path d="M265 200 L205 280" stroke="#172554" strokeWidth="1" />
+         {/* Gold Buttons */}
+         <circle cx="200" cy="300" r="3" fill="#FBBF24" />
+         <circle cx="200" cy="320" r="3" fill="#FBBF24" />
+         {/* Sleeves over shirt */}
+         <path d="M135 200 L105 225 L115 305 L140 285" fill={c.blazer} />
+         <path d="M265 200 L295 225 L285 305 L260 285" fill={c.blazer} />
+      </g>
+
+      {/* 8. Scarf */}
+      <g style={{ opacity: level >= 8 ? 1 : 0, transition: 'opacity 0.5s' }}>
+         <path d="M165 190 Q200 230 235 190 L235 210 Q200 250 165 210 Z" fill={c.scarf} />
+         <rect x="210" y="210" width="20" height="60" fill={c.scarf} />
+         <path d="M210 260 L230 260" stroke={c.scarfShadow} strokeWidth="1" />
+      </g>
+
+      {/* 9. Beret */}
+      <g style={{ opacity: level >= 9 ? 1 : 0, transition: 'opacity 0.5s' }}>
+         <path d="M140 85 Q200 50 260 85 Q280 100 260 110 Q200 125 140 110 Q120 100 140 85" fill="#EC4899" />
+         <path d="M200 60 L205 70" stroke="#BE185D" strokeWidth="3" />
+      </g>
+
+      {/* 10. Glasses */}
+      <g style={{ opacity: level >= 10 ? 1 : 0, transition: 'opacity 0.5s' }}>
+         <circle cx="172" cy="138" r="14" stroke={c.glasses} strokeWidth="2" fill="blue" fillOpacity="0.05" />
+         <circle cx="228" cy="138" r="14" stroke={c.glasses} strokeWidth="2" fill="blue" fillOpacity="0.05" />
+         <line x1="186" y1="138" x2="214" y2="138" stroke={c.glasses} strokeWidth="2" />
+         {/* Glare */}
+         <path d="M165 130 L175 130" stroke="white" strokeWidth="1" opacity="0.5" />
+      </g>
+
+      {/* --- FRONT HAIR (Bangs & Flow) --- */}
       <g id="hair-front">
-          <path d="M150 80 L145 120 L160 105 L175 125 L190 95 L200 120 L220 95 L235 125 L255 105 L250 80 Z" fill={c.hairLight} />
-          <path d="M175 125 L178 110" stroke={c.hairDark} strokeWidth="1" opacity="0.3" />
-          <path d="M235 125 L232 110" stroke={c.hairDark} strokeWidth="1" opacity="0.3" />
-          {/* Hair Highlight Ring */}
-          <path d="M160 90 Q200 85 240 90" stroke={c.skinHighlight} strokeWidth="3" opacity="0.4" fill="none" strokeLinecap="round" />
+        <path d="M140 80 Q130 130 150 140 Q160 110 170 130 Q180 80 200 120 Q220 80 230 130 Q240 110 250 140 Q270 130 260 80" fill={c.hair} />
+        {/* Hair Highlight Halo */}
+        <path d="M150 90 Q200 80 250 90" stroke={c.hairHighlight} strokeWidth="2" fill="none" opacity="0.3" strokeLinecap="round" />
+        {/* Side Strands */}
+        <path d="M140 110 Q135 180 155 220" fill="none" stroke={c.hair} strokeWidth="8" strokeLinecap="round" />
+        <path d="M260 110 Q265 180 245 220" fill="none" stroke={c.hair} strokeWidth="8" strokeLinecap="round" />
       </g>
 
     </svg>
@@ -860,8 +846,8 @@ const QuizGame: React.FC = () => {
         </div>
       </div>
       
-      {/* HEARTBEAT SPLIT LAYOUT (Adjusted: Girl 1 col, Quiz 3 cols) */}
-      <div className={`grid gap-8 ${isHeartbeat ? 'lg:grid-cols-4' : 'grid-cols-1'}`}>
+      {/* HEARTBEAT SPLIT LAYOUT (Adjusted: Girl 1 col [16%], Quiz 5 cols [84%]) */}
+      <div className={`grid gap-8 ${isHeartbeat ? 'lg:grid-cols-6' : 'grid-cols-1'}`}>
       
         {/* 1. Left Side: The Anime Girl (Visible only in Heartbeat mode) */}
         {isHeartbeat && (
@@ -890,7 +876,7 @@ const QuizGame: React.FC = () => {
         )}
 
         {/* 2. Right Side (or Top on Mobile): Quiz Interface */}
-        <div className={`${isHeartbeat ? 'lg:col-span-3' : ''}`}>
+        <div className={`${isHeartbeat ? 'lg:col-span-5' : ''}`}>
            {/* Timer for Heartbeat */}
            {isHeartbeat && (
              <div className="mb-4">
