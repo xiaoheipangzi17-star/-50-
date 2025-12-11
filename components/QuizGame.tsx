@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { KANA_DATA } from '../constants';
 import { Kana, MnemonicResponse } from '../types';
@@ -88,15 +87,15 @@ const PixelAnimeGirl: React.FC<{ level: number, mood: 'happy' | 'shocked' | 'ang
   return (
     <svg viewBox="0 0 400 600" className="w-full h-full drop-shadow-2xl" shapeRendering="geometricPrecision">
       <defs>
-        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+        <filter id="pag_glow" x="-20%" y="-20%" width="140%" height="140%">
           <feGaussianBlur stdDeviation="3" result="blur" />
           <feComposite in="SourceGraphic" in2="blur" operator="over" />
         </filter>
-        <linearGradient id="hairGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id="pag_hairGrad" x1="0%" y1="0%" x2="100%" y2="100%">
            <stop offset="0%" stopColor={c.hairMid} />
            <stop offset="100%" stopColor={c.hair} />
         </linearGradient>
-        <linearGradient id="legGrad" x1="0" y1="0" x2="1" y2="0">
+        <linearGradient id="pag_legGrad" x1="0" y1="0" x2="1" y2="0">
            <stop offset="0%" stopColor={c.skinShadow} />
            <stop offset="20%" stopColor={c.skin} />
            <stop offset="80%" stopColor={c.skin} />
@@ -106,7 +105,7 @@ const PixelAnimeGirl: React.FC<{ level: number, mood: 'happy' | 'shocked' | 'ang
 
       {/* --- BACK HAIR --- */}
       <g id="hair-back">
-        <path d="M120 120 L80 400 Q200 420 320 400 L280 120" fill="url(#hairGrad)" />
+        <path d="M120 120 L80 400 Q200 420 320 400 L280 120" fill="url(#pag_hairGrad)" />
         <path d="M80 400 L90 440 L110 410" fill={c.hair} />
         <path d="M320 400 L310 440 L290 410" fill={c.hair} />
       </g>
@@ -114,8 +113,8 @@ const PixelAnimeGirl: React.FC<{ level: number, mood: 'happy' | 'shocked' | 'ang
       {/* --- BODY --- */}
       <g id="body">
         {/* Legs */}
-        <path d="M165 350 L162 550 L188 550 L190 350" fill="url(#legGrad)" />
-        <path d="M210 350 L212 550 L238 550 L235 350" fill="url(#legGrad)" />
+        <path d="M165 350 L162 550 L188 550 L190 350" fill="url(#pag_legGrad)" />
+        <path d="M210 350 L212 550 L238 550 L235 350" fill="url(#pag_legGrad)" />
         
         {/* Knees */}
         <ellipse cx="175" cy="460" rx="6" ry="4" fill={c.skinShadow} opacity="0.3" />
@@ -137,8 +136,8 @@ const PixelAnimeGirl: React.FC<{ level: number, mood: 'happy' | 'shocked' | 'ang
         {/* Blush */}
         {(mood === 'shocked' || level <= 3) && (
            <>
-            <ellipse cx="165" cy="165" rx="15" ry="8" fill={c.blush} opacity="0.6" filter="url(#glow)" />
-            <ellipse cx="235" cy="165" rx="15" ry="8" fill={c.blush} opacity="0.6" filter="url(#glow)" />
+            <ellipse cx="165" cy="165" rx="15" ry="8" fill={c.blush} opacity="0.6" filter="url(#pag_glow)" />
+            <ellipse cx="235" cy="165" rx="15" ry="8" fill={c.blush} opacity="0.6" filter="url(#pag_glow)" />
             <line x1="160" y1="165" x2="170" y2="160" stroke={c.blush} strokeWidth="2" />
             <line x1="230" y1="160" x2="240" y2="165" stroke={c.blush} strokeWidth="2" />
            </>

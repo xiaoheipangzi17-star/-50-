@@ -1,10 +1,20 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { MnemonicResponse, VocabularyResponse } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+let aiInstance: GoogleGenAI | null = null;
+
+const getAiClient = () => {
+  if (!aiInstance) {
+    // Initialize strictly using process.env.API_KEY as required
+    // Doing this lazily ensures the app doesn't crash on load if the environment isn't ready
+    aiInstance = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  }
+  return aiInstance;
+};
 
 export const getMnemonic = async (kana: string, romaji: string, type: 'Hiragana' | 'Katakana'): Promise<MnemonicResponse | null> => {
   try {
+    const ai = getAiClient();
     const prompt = `Generate a creative and memorable mnemonic (memory aid) for the Japanese ${type} character "${kana}" (pronounced ${romaji}). 
     The target audience is Chinese speakers learning Japanese.
     
@@ -42,6 +52,7 @@ export const getMnemonic = async (kana: string, romaji: string, type: 'Hiragana'
 
 export const getVocabulary = async (kana: string): Promise<VocabularyResponse | null> => {
   try {
+    const ai = getAiClient();
     const prompt = `Provide a simple, common Japanese vocabulary word that starts with or contains the character "${kana}".
     The target audience is beginners (JLPT N5 level).
     
