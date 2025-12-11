@@ -5,9 +5,19 @@ let aiInstance: GoogleGenAI | null = null;
 
 const getAiClient = () => {
   if (!aiInstance) {
-    // Initialize strictly using process.env.API_KEY as required
-    // Doing this lazily ensures the app doesn't crash on load if the environment isn't ready
-    aiInstance = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // Safety check: ensure 'process' exists before accessing it to prevent browser crashes.
+    // In many build tools (Vite/CRA), process.env is replaced at build time.
+    // In raw browser environments, accessing 'process' throws ReferenceError.
+    let apiKey = '';
+    try {
+      if (typeof process !== 'undefined' && process.env) {
+        apiKey = process.env.API_KEY || '';
+      }
+    } catch (e) {
+      console.warn("Could not access process.env.API_KEY");
+    }
+
+    aiInstance = new GoogleGenAI({ apiKey });
   }
   return aiInstance;
 };
