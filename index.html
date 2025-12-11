@@ -1,32 +1,921 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>日语五十音 AI 助手</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日语五十音 AI Dojo (单文件版)</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    
     <style>
-      body {
-        font-family: 'Noto Sans SC', 'Noto Sans JP', sans-serif;
-      }
-      .kana-font {
-        font-family: 'Noto Sans JP', sans-serif;
-      }
+        body { font-family: 'Noto Sans SC', 'Noto Sans JP', sans-serif; }
+        .kana-font { font-family: 'Noto Sans JP', sans-serif; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        .animate-fade-in-up { animation: fadeIn 0.3s ease-out forwards; }
+        
+        /* Custom scrollbar for better look */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
-  <script type="importmap">
+
+    <!-- Import Map for Google GenAI SDK -->
+    <script type="importmap">
 {
   "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.1/",
-    "react": "https://aistudiocdn.com/react@^19.2.1",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.32.0"
+    "@google/genai": "https://esm.run/@google/genai",
+    "react": "https://esm.sh/react@^19.2.1",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.1/",
+    "react/": "https://esm.sh/react@^19.2.1/"
   }
 }
 </script>
 </head>
-  <body class="bg-slate-50 text-slate-800">
-    <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
-  </body>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="switchView('study')">
+                <span class="text-2xl">🇯🇵</span>
+                <h1 class="font-bold text-xl text-slate-800 tracking-tight">AI 五十音 Dojo</h1>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="flex bg-slate-100 p-1 rounded-lg">
+                    <button onclick="switchView('study')" id="btn-nav-study" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-white text-indigo-600 shadow-sm">学习图表</button>
+                    <button onclick="switchView('quiz')" id="btn-nav-quiz" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-500 hover:text-slate-700">记忆挑战</button>
+                </div>
+                <button onclick="promptApiKey()" class="text-xs text-slate-400 hover:text-indigo-600 underline">🔑 设置 API Key</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="app-container" class="flex-grow py-8 px-4 max-w-6xl mx-auto w-full">
+        <!-- Views will be injected here -->
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6 mt-auto">
+        <div class="max-w-5xl mx-auto px-4 text-center text-slate-400 text-sm">
+            <p>Powered by Google Gemini 2.5 Flash</p>
+            <p className="mt-1">Designed for Japanese Learners</p>
+        </div>
+    </footer>
+
+    <!-- Logic Script -->
+    <script type="module">
+        import { GoogleGenAI } from "@google/genai";
+
+        // --- Constants & Data ---
+        const KANA_DATA = [
+            { romaji: 'a', hiragana: 'あ', katakana: 'ア', category: 'a' },
+            { romaji: 'i', hiragana: 'い', katakana: 'イ', category: 'a' },
+            { romaji: 'u', hiragana: 'う', katakana: 'ウ', category: 'a' },
+            { romaji: 'e', hiragana: 'え', katakana: 'エ', category: 'a' },
+            { romaji: 'o', hiragana: 'お', katakana: 'オ', category: 'a' },
+            { romaji: 'ka', hiragana: 'か', katakana: 'カ', category: 'ka' },
+            { romaji: 'ki', hiragana: 'き', katakana: 'キ', category: 'ka' },
+            { romaji: 'ku', hiragana: 'く', katakana: 'ク', category: 'ka' },
+            { romaji: 'ke', hiragana: 'け', katakana: 'ケ', category: 'ka' },
+            { romaji: 'ko', hiragana: 'こ', katakana: 'コ', category: 'ka' },
+            { romaji: 'sa', hiragana: 'さ', katakana: 'サ', category: 'sa' },
+            { romaji: 'shi', hiragana: 'し', katakana: 'シ', category: 'sa' },
+            { romaji: 'su', hiragana: 'す', katakana: 'ス', category: 'sa' },
+            { romaji: 'se', hiragana: 'せ', katakana: 'セ', category: 'sa' },
+            { romaji: 'so', hiragana: 'そ', katakana: 'ソ', category: 'sa' },
+            { romaji: 'ta', hiragana: 'た', katakana: 'タ', category: 'ta' },
+            { romaji: 'chi', hiragana: 'ち', katakana: 'チ', category: 'ta' },
+            { romaji: 'tsu', hiragana: 'つ', katakana: 'ツ', category: 'ta' },
+            { romaji: 'te', hiragana: 'て', katakana: 'テ', category: 'ta' },
+            { romaji: 'to', hiragana: 'と', katakana: 'ト', category: 'ta' },
+            { romaji: 'na', hiragana: 'な', katakana: 'ナ', category: 'na' },
+            { romaji: 'ni', hiragana: 'に', katakana: 'ニ', category: 'na' },
+            { romaji: 'nu', hiragana: 'ぬ', katakana: 'ヌ', category: 'na' },
+            { romaji: 'ne', hiragana: 'ね', katakana: 'ネ', category: 'na' },
+            { romaji: 'no', hiragana: 'の', katakana: 'ノ', category: 'na' },
+            { romaji: 'ha', hiragana: 'は', katakana: 'ハ', category: 'ha' },
+            { romaji: 'hi', hiragana: 'ひ', katakana: 'ヒ', category: 'ha' },
+            { romaji: 'fu', hiragana: 'ふ', katakana: 'フ', category: 'ha' },
+            { romaji: 'he', hiragana: 'へ', katakana: 'ヘ', category: 'ha' },
+            { romaji: 'ho', hiragana: 'ほ', katakana: 'ホ', category: 'ha' },
+            { romaji: 'ma', hiragana: 'ま', katakana: 'マ', category: 'ma' },
+            { romaji: 'mi', hiragana: 'み', katakana: 'ミ', category: 'ma' },
+            { romaji: 'mu', hiragana: 'む', katakana: 'ム', category: 'ma' },
+            { romaji: 'me', hiragana: 'め', katakana: 'メ', category: 'ma' },
+            { romaji: 'mo', hiragana: 'も', katakana: 'モ', category: 'ma' },
+            { romaji: 'ya', hiragana: 'や', katakana: 'ヤ', category: 'ya' },
+            { romaji: 'yu', hiragana: 'ゆ', katakana: 'ユ', category: 'ya' },
+            { romaji: 'yo', hiragana: 'よ', katakana: 'ヨ', category: 'ya' },
+            { romaji: 'ra', hiragana: 'ら', katakana: 'ラ', category: 'ra' },
+            { romaji: 'ri', hiragana: 'り', katakana: 'リ', category: 'ra' },
+            { romaji: 'ru', hiragana: 'る', katakana: 'ル', category: 'ra' },
+            { romaji: 're', hiragana: 'れ', katakana: 'レ', category: 'ra' },
+            { romaji: 'ro', hiragana: 'ろ', katakana: 'ロ', category: 'ra' },
+            { romaji: 'wa', hiragana: 'わ', katakana: 'ワ', category: 'wa' },
+            { romaji: 'wo', hiragana: 'を', katakana: 'ヲ', category: 'wa' },
+            { romaji: 'n', hiragana: 'ん', katakana: 'ン', category: 'n' },
+            // Dakuon
+            { romaji: 'ga', hiragana: 'が', katakana: 'ガ', category: 'ga' },
+            { romaji: 'gi', hiragana: 'ぎ', katakana: 'ギ', category: 'ga' },
+            { romaji: 'gu', hiragana: 'ぐ', katakana: 'グ', category: 'ga' },
+            { romaji: 'ge', hiragana: 'げ', katakana: 'ゲ', category: 'ga' },
+            { romaji: 'go', hiragana: 'ご', katakana: 'ゴ', category: 'ga' },
+            { romaji: 'za', hiragana: 'ざ', katakana: 'ザ', category: 'za' },
+            { romaji: 'ji', hiragana: 'じ', katakana: 'ジ', category: 'za' },
+            { romaji: 'zu', hiragana: 'ず', katakana: 'ズ', category: 'za' },
+            { romaji: 'ze', hiragana: 'ぜ', katakana: 'ゼ', category: 'za' },
+            { romaji: 'zo', hiragana: 'ぞ', katakana: 'ゾ', category: 'za' },
+            { romaji: 'da', hiragana: 'だ', katakana: 'ダ', category: 'da' },
+            { romaji: 'di', hiragana: 'ぢ', katakana: 'ヂ', category: 'da' },
+            { romaji: 'du', hiragana: 'づ', katakana: 'ヅ', category: 'da' },
+            { romaji: 'de', hiragana: 'で', katakana: 'デ', category: 'da' },
+            { romaji: 'do', hiragana: 'ど', katakana: 'ド', category: 'da' },
+            { romaji: 'ba', hiragana: 'ば', katakana: 'バ', category: 'ba' },
+            { romaji: 'bi', hiragana: 'び', katakana: 'ビ', category: 'ba' },
+            { romaji: 'bu', hiragana: 'ぶ', katakana: 'ブ', category: 'ba' },
+            { romaji: 'be', hiragana: 'べ', katakana: 'ベ', category: 'ba' },
+            { romaji: 'bo', hiragana: 'ぼ', katakana: 'ボ', category: 'ba' },
+            // Handakuon
+            { romaji: 'pa', hiragana: 'ぱ', katakana: 'パ', category: 'pa' },
+            { romaji: 'pi', hiragana: 'ぴ', katakana: 'ピ', category: 'pa' },
+            { romaji: 'pu', hiragana: 'ぷ', katakana: 'プ', category: 'pa' },
+            { romaji: 'pe', hiragana: 'ぺ', katakana: 'ペ', category: 'pa' },
+            { romaji: 'po', hiragana: 'ぽ', katakana: 'ポ', category: 'pa' },
+        ];
+
+        const SEION_CATEGORIES = ['a', 'ka', 'sa', 'ta', 'na', 'ha', 'ma', 'ya', 'ra', 'wa', 'n'];
+        const CATEGORIES = Array.from(new Set(KANA_DATA.map(k => k.category)));
+        const CATEGORY_GROUPS = {
+            '清音 (基础)': ['a', 'ka', 'sa', 'ta', 'na', 'ha', 'ma', 'ya', 'ra', 'wa', 'n'],
+            '浊音 (Voiced)': ['ga', 'za', 'da', 'ba'],
+            '半浊音': ['pa']
+        };
+        const ROW_LABELS = {
+            'a': 'あ行', 'ka': 'か行', 'sa': 'さ行', 'ta': 'た行', 'na': 'な行',
+            'ha': 'は行', 'ma': 'ま行', 'ya': 'や行', 'ra': 'ら行', 'wa': 'わ行', 'n': 'ん',
+            'ga': 'が行', 'za': 'ざ行', 'da': 'だ行', 'ba': 'ば行', 'pa': 'ぱ行'
+        };
+        const VOICE_LINES = {
+            start: ['頑張ってね！', 'ganbatte ne', '要加油哦！'],
+            correct: ['すごい！', 'sugoi', '好厉害！'],
+            correct_strip: ['きゃっ！えっち！', 'kya! ecchi!', '呀！色鬼！'],
+            wrong: ['違うよ！', 'chigau yo', '不对哦！'],
+            wrong_dress: ['バカ！', 'baka', '笨蛋！'],
+            timeout: ['遅いよ...', 'osoi yo', '太慢了...'],
+            win_naked: ['もう...全部見られちゃった...', 'mou... zenbu mirarechatta', '真是的...全被看光了...'],
+            win_normal: ['お疲れ様！', 'otsukaresama', '辛苦啦！'],
+            lose: ['残念でした〜', 'zannen deshita', '太遗憾了~']
+        };
+        const CHAR_TYPE_LABELS = {
+            hiragana: '平假名 (あ)',
+            katakana: '片假名 (ア)',
+            romaji: '罗马音 (a)',
+            random: '🎲 随机 (Random)'
+        };
+
+        // --- Global State ---
+        let state = {
+            view: 'study', // 'study' or 'quiz'
+            studyTab: 'hiragana', // 'hiragana' or 'katakana'
+            studyMode: 'seion', // 'seion' or 'dakuon'
+            selectedKana: null,
+            apiKey: localStorage.getItem('GEMINI_API_KEY') || '',
+            
+            // Quiz State
+            quizConfig: {
+                questionType: 'hiragana',
+                answerType: 'romaji',
+                selectedCategories: [...CATEGORY_GROUPS['清音 (基础)']],
+                gameMode: 'regular'
+            },
+            quizStatus: 'menu', // 'menu', 'playing', 'result'
+            currentQuestion: null,
+            currentOptions: [],
+            currentRoundTypes: {q: 'hiragana', a: 'romaji'},
+            score: 0,
+            streak: 0,
+            roundState: 'waiting', // 'waiting', 'success', 'failure'
+            
+            // Heartbeat specific
+            timeLeft: 5,
+            clothingLevel: 10,
+            questionCount: 0,
+            heartbeatTimerId: null
+        };
+
+        const HEARTBEAT_TOTAL_QUESTIONS = 10;
+        let voices = [];
+
+        // --- API & Audio Helpers ---
+
+        function getAiClient() {
+            if (!state.apiKey) return null;
+            return new GoogleGenAI({ apiKey: state.apiKey });
+        }
+
+        async function fetchMnemonic(kana, romaji, type) {
+            const ai = getAiClient();
+            if (!ai) return alert('请先点击右上角设置 API Key 以使用 AI 功能');
+            try {
+                const prompt = `Generate a creative and memorable mnemonic (memory aid) for the Japanese ${type} character "${kana}" (pronounced ${romaji}). The target audience is Chinese speakers learning Japanese. Return JSON: { "mnemonic": "short phrase", "description": "explanation" }.`;
+                const resp = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash', contents: prompt,
+                    config: { responseMimeType: "application/json" }
+                });
+                return JSON.parse(resp.text);
+            } catch (e) { console.error(e); return null; }
+        }
+
+        async function fetchVocabulary(kana) {
+            const ai = getAiClient();
+            if (!ai) return alert('请先点击右上角设置 API Key 以使用 AI 功能');
+            try {
+                const prompt = `Provide a simple Japanese word starting with or containing "${kana}" (N5 level). Return JSON: { "word": "word", "reading": "reading", "meaning": "Chinese meaning" }.`;
+                const resp = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash', contents: prompt,
+                    config: { responseMimeType: "application/json" }
+                });
+                return JSON.parse(resp.text);
+            } catch (e) { console.error(e); return null; }
+        }
+
+        function playAudio(text, isAnime = false) {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'ja-JP';
+            const jaVoices = voices.filter(v => v.lang.includes('ja') || v.lang.includes('JP'));
+            const bestVoice = jaVoices.find(v => v.name.includes('Google') || v.name.includes('Kyoko') || v.name.includes('Haruka')) || jaVoices[0];
+            if (bestVoice) u.voice = bestVoice;
+            
+            if (isAnime) {
+                u.pitch = 1.4;
+                u.rate = 1.1;
+            } else {
+                u.pitch = 1.1;
+                u.rate = 1.0;
+            }
+            window.speechSynthesis.speak(u);
+        }
+
+        function playSoundEffect(type) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            const audio = new AudioCtx();
+            const osc = audio.createOscillator();
+            const gain = audio.createGain();
+            osc.connect(gain);
+            gain.connect(audio.destination);
+            const now = audio.currentTime;
+            if (type === 'success') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.linearRampToValueAtTime(50, now + 0.25);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+        }
+
+        // --- Renderers ---
+
+        function renderAvatar(level, mood) {
+            const c = {
+                skin: "#FFF0E0", skinShadow: "#FAD0B0", hair: "#3A2E44", hairMid: "#584666",
+                eyeBase: mood === 'shocked' ? "#334155" : "#3B82F6", eyeDark: "#1E3A8A",
+                blush: "#FF9090", lip: "#F472B6", shirt: "#FAFAFA", shirtShadow: "#E2E8F0",
+                vest: "#FEF08A", vestShadow: "#EAB308", vestDark: "#CA8A04",
+                skirt: "#60A5FA", skirtShadow: "#2563EB", skirtDark: "#1E40AF",
+                socks: "#1E293B", shoes: "#451a03", shoesLight: "#78350f",
+                blazer: "#1e3a8a", scarf: "#ef4444", scarfShadow: "#b91c1c", glasses: "#475569"
+            };
+
+            const buildPath = (d, fill, extra="") => `<path d="${d}" fill="${fill}" ${extra} />`;
+
+            return `
+            <svg viewBox="0 0 400 600" class="w-full h-full drop-shadow-2xl" shapeRendering="geometricPrecision">
+              <defs>
+                <filter id="pag_glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+                <linearGradient id="pag_hairGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                   <stop offset="0%" stopColor="${c.hairMid}" />
+                   <stop offset="100%" stopColor="${c.hair}" />
+                </linearGradient>
+                <linearGradient id="pag_legGrad" x1="0" y1="0" x2="1" y2="0">
+                   <stop offset="0%" stopColor="${c.skinShadow}" />
+                   <stop offset="20%" stopColor="${c.skin}" />
+                   <stop offset="80%" stopColor="${c.skin}" />
+                   <stop offset="100%" stopColor="${c.skinShadow}" />
+                </linearGradient>
+              </defs>
+
+              <g id="hair-back">
+                ${buildPath("M120 120 L80 400 Q200 420 320 400 L280 120", "url(#pag_hairGrad)")}
+                ${buildPath("M80 400 L90 440 L110 410", c.hair)}
+                ${buildPath("M320 400 L310 440 L290 410", c.hair)}
+              </g>
+
+              <g id="body">
+                ${buildPath("M165 350 L162 550 L188 550 L190 350", "url(#pag_legGrad)")}
+                ${buildPath("M210 350 L212 550 L238 550 L235 350", "url(#pag_legGrad)")}
+                <ellipse cx="175" cy="460" rx="6" ry="4" fill="${c.skinShadow}" opacity="0.3" />
+                <ellipse cx="225" cy="460" rx="6" ry="4" fill="${c.skinShadow}" opacity="0.3" />
+                ${buildPath("M150 180 Q140 250 145 360 L255 360 Q260 250 250 180 Z", c.skin)}
+                ${buildPath("M145 360 L255 360 L245 380 L155 380 Z", "white", 'opacity="0.9"')}
+                <rect x="182" y="160" width="36" height="40" fill="${c.skin}" />
+                ${buildPath("M182 160 L182 200 L190 200 L190 170", c.skinShadow, 'opacity="0.5"')}
+              </g>
+
+              <g id="head">
+                ${buildPath("M140 80 L140 160 Q140 210 200 210 Q260 210 260 160 L260 80 Z", c.skin)}
+                
+                ${(mood === 'shocked' || level <= 3) ? `
+                   <ellipse cx="165" cy="165" rx="15" ry="8" fill="${c.blush}" opacity="0.6" filter="url(#pag_glow)" />
+                   <ellipse cx="235" cy="165" rx="15" ry="8" fill="${c.blush}" opacity="0.6" filter="url(#pag_glow)" />
+                   <line x1="160" y1="165" x2="170" y2="160" stroke="${c.blush}" stroke-width="2" />
+                   <line x1="230" y1="160" x2="240" y2="165" stroke="${c.blush}" stroke-width="2" />
+                ` : ''}
+
+                <g id="eyes" transform="translate(0, 5)">
+                   ${buildPath("M155 135 Q175 125 190 135 Q190 150 172 150 Q155 150 155 135", "white")}
+                   ${buildPath("M210 135 Q225 125 245 135 Q245 150 228 150 Q210 150 210 135", "white")}
+                   <circle cx="172" cy="138" r="11" fill="${c.eyeBase}" />
+                   <circle cx="228" cy="138" r="11" fill="${c.eyeBase}" />
+                   <circle cx="172" cy="138" r="6" fill="${c.eyeDark}" />
+                   <circle cx="228" cy="138" r="6" fill="${c.eyeDark}" />
+                   <circle cx="168" cy="134" r="3" fill="white" opacity="0.9" />
+                   <circle cx="175" cy="142" r="1.5" fill="white" opacity="0.7" />
+                   <circle cx="224" cy="134" r="3" fill="white" opacity="0.9" />
+                   <circle cx="231" cy="142" r="1.5" fill="white" opacity="0.7" />
+                   <path d="M152 135 Q172 122 192 135" stroke="${c.hair}" stroke-width="3" fill="none" />
+                   <path d="M208 135 Q228 122 248 135" stroke="${c.hair}" stroke-width="3" fill="none" />
+                </g>
+
+                <g transform="translate(0, 10)">
+                   ${mood === 'happy' ? `<path d="M190 175 Q200 185 210 175" stroke="${c.lip}" stroke-width="2" fill="none" stroke-linecap="round" />` : ''}
+                   ${mood === 'shocked' ? `<circle cx="200" cy="180" r="6" fill="${c.lip}" />` : ''}
+                   ${mood === 'angry' ? `<path d="M190 180 Q200 170 210 180" stroke="${c.lip}" stroke-width="2" fill="none" stroke-linecap="round" />` : ''}
+                </g>
+              </g>
+
+              <g style="opacity: ${level >= 1 ? 1 : 0}; transition: opacity 0.5s">
+                 ${buildPath("M150 190 L140 240 L135 350 L265 350 L260 240 L250 190", c.shirt)}
+                 ${buildPath("M150 270 Q200 290 250 270 L250 280 Q200 300 150 280 Z", c.shirtShadow, 'opacity="0.5"')}
+                 <path d="M182 190 L200 220 L218 190 L230 200 L200 240 L170 200 Z" fill="white" stroke="${c.shirtShadow}" stroke-width="1" />
+                 ${buildPath("M140 195 L110 220 L120 300 L145 280", c.shirt)}
+                 ${buildPath("M260 195 L290 220 L280 300 L255 280", c.shirt)}
+              </g>
+
+              <g style="opacity: ${level >= 2 ? 1 : 0}; transition: opacity 0.5s">
+                 ${buildPath("M164 450 L162 560 L188 560 L191 450", c.socks)}
+                 ${buildPath("M209 450 L212 560 L238 560 L236 450", c.socks)}
+                 <path d="M164 450 L191 450" stroke="#334155" stroke-width="4" />
+                 <path d="M209 450 L236 450" stroke="#334155" stroke-width="4" />
+              </g>
+
+              <g style="opacity: ${level >= 3 ? 1 : 0}; transition: opacity 0.5s">
+                 ${buildPath("M148 200 L142 340 L258 340 L252 200 L220 195 L200 250 L180 195 Z", c.vest)}
+                 ${buildPath("M142 330 L258 330 L258 340 L142 340 Z", c.vestDark)}
+                 <path d="M160 210 L155 330" stroke="${c.vestShadow}" stroke-width="1" stroke-dasharray="2,2" />
+                 <path d="M240 210 L245 330" stroke="${c.vestShadow}" stroke-width="1" stroke-dasharray="2,2" />
+                 ${buildPath("M230 260 L245 260 L242 275 L233 275 Z", c.vestDark)}
+              </g>
+
+              <g style="opacity: ${level >= 4 ? 1 : 0}; transition: opacity 0.5s">
+                 ${buildPath("M145 335 L125 420 L275 420 L255 335 Z", c.skirt)}
+                 ${buildPath("M165 335 L155 420 L175 420 L180 335", c.skirtShadow, 'opacity="0.4"')}
+                 ${buildPath("M200 335 L195 420 L205 420 L210 335", c.skirtShadow, 'opacity="0.4"')}
+                 ${buildPath("M235 335 L225 420 L245 420 L250 335", c.skirtShadow, 'opacity="0.4"')}
+                 <path d="M130 415 L270 415" stroke="${c.skirtDark}" stroke-width="1" fill="none" />
+              </g>
+
+              <g style="opacity: ${level >= 5 ? 1 : 0}; transition: opacity 0.5s">
+                 ${buildPath("M158 555 L158 580 Q158 590 170 590 L182 590 Q194 590 194 580 L194 570 L185 555 Z", c.shoes)}
+                 <rect x="165" y="560" width="20" height="5" fill="${c.shoesLight}" />
+                 ${buildPath("M208 555 L208 580 Q208 590 220 590 L232 590 Q244 590 244 580 L244 570 L235 555 Z", c.shoes)}
+                 <rect x="215" y="560" width="20" height="5" fill="${c.shoesLight}" />
+              </g>
+
+              <g style="opacity: ${level >= 6 ? 1 : 0}; transition: opacity 0.5s">
+                 <rect x="260" y="380" width="80" height="50" rx="5" fill="#5D4037" transform="rotate(-10 260 380)" />
+                 <path d="M220 220 Q240 300 265 385" stroke="#5D4037" stroke-width="4" fill="none" />
+              </g>
+
+              <g style="opacity: ${level >= 7 ? 1 : 0}; transition: opacity 0.5s">
+                 ${buildPath("M135 200 L135 350 L190 350 L195 280 L205 280 L210 350 L265 350 L265 200 L240 190 L200 210 L160 190 Z", c.blazer)}
+                 <path d="M135 200 L195 280" stroke="#172554" stroke-width="1" />
+                 <path d="M265 200 L205 280" stroke="#172554" stroke-width="1" />
+                 <circle cx="200" cy="300" r="3" fill="#FBBF24" />
+                 <circle cx="200" cy="320" r="3" fill="#FBBF24" />
+                 ${buildPath("M135 200 L105 225 L115 305 L140 285", c.blazer)}
+                 ${buildPath("M265 200 L295 225 L285 305 L260 285", c.blazer)}
+              </g>
+
+              <g style="opacity: ${level >= 8 ? 1 : 0}; transition: opacity 0.5s">
+                 ${buildPath("M165 190 Q200 230 235 190 L235 210 Q200 250 165 210 Z", c.scarf)}
+                 <rect x="210" y="210" width="20" height="60" fill="${c.scarf}" />
+              </g>
+
+              <g style="opacity: ${level >= 9 ? 1 : 0}; transition: opacity 0.5s">
+                 ${buildPath("M140 85 Q200 50 260 85 Q280 100 260 110 Q200 125 140 110 Q120 100 140 85", "#EC4899")}
+                 <path d="M200 60 L205 70" stroke="#BE185D" stroke-width="3" />
+              </g>
+
+              <g style="opacity: ${level >= 10 ? 1 : 0}; transition: opacity 0.5s">
+                 <circle cx="172" cy="138" r="14" stroke="${c.glasses}" stroke-width="2" fill="blue" fill-opacity="0.05" />
+                 <circle cx="228" cy="138" r="14" stroke="${c.glasses}" stroke-width="2" fill="blue" fill-opacity="0.05" />
+                 <line x1="186" y1="138" x2="214" y2="138" stroke="${c.glasses}" stroke-width="2" />
+                 <path d="M165 130 L175 130" stroke="white" stroke-width="1" opacity="0.5" />
+              </g>
+
+              <g id="hair-front">
+                ${buildPath("M140 80 Q130 130 150 140 Q160 110 170 130 Q180 80 200 120 Q220 80 230 130 Q240 110 250 140 Q270 130 260 80", c.hair)}
+                <path d="M150 90 Q200 80 250 90" stroke="${c.hairHighlight}" stroke-width="2" fill="none" opacity="0.3" stroke-linecap="round" />
+                <path d="M140 110 Q135 180 155 220" fill="none" stroke="${c.hair}" stroke-width="8" stroke-linecap="round" />
+                <path d="M260 110 Q265 180 245 220" fill="none" stroke="${c.hair}" stroke-width="8" stroke-linecap="round" />
+              </g>
+            </svg>`;
+        }
+
+        // --- View Controller: Study Mode ---
+
+        function renderStudyView() {
+            const isHiragana = state.studyTab === 'hiragana';
+            const isSeion = state.studyMode === 'seion';
+            
+            const filteredData = KANA_DATA.filter(k => isSeion ? SEION_CATEGORIES.includes(k.category) : !SEION_CATEGORIES.includes(k.category));
+            
+            const gridHTML = filteredData.length > 0 ? `
+                <div class="grid grid-cols-5 gap-3">
+                    ${filteredData.map(k => {
+                        const isSelected = state.selectedKana && state.selectedKana.romaji === k.romaji;
+                        return `
+                        <button onclick="handleStudyClick('${k.romaji}')" class="flex flex-col items-center justify-center p-3 rounded-lg border transition-all hover:shadow-md ${isSelected ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200' : 'border-slate-100 hover:border-indigo-300 bg-slate-50'}">
+                            <span class="text-xl font-bold kana-font text-slate-700">${isHiragana ? k.hiragana : k.katakana}</span>
+                            <span class="text-xs text-slate-400 font-mono mt-1">${k.romaji}</span>
+                        </button>`;
+                    }).join('')}
+                </div>` : '<div class="text-center py-10 text-slate-400">暂无数据</div>';
+
+            let infoPanelHTML = '';
+            if (state.selectedKana) {
+                const char = isHiragana ? state.selectedKana.hiragana : state.selectedKana.katakana;
+                infoPanelHTML = `
+                <div class="bg-white p-6 rounded-2xl shadow-lg border border-indigo-100 sticky top-6 animate-fade-in-up">
+                   <div class="text-center mb-6">
+                     <h2 class="text-8xl font-bold text-indigo-600 kana-font mb-2">${char}</h2>
+                     <p class="text-2xl text-slate-500 font-mono tracking-widest">${state.selectedKana.romaji}</p>
+                     <button onclick="playAudio('${char}')" class="mt-4 text-indigo-500 hover:text-indigo-700 flex items-center justify-center mx-auto gap-2 text-sm font-medium">
+                       🔊 播放发音
+                     </button>
+                   </div>
+                   <div class="border-t pt-4" id="vocab-container">
+                     <h3 class="font-bold text-slate-700 mb-2">✨ AI 单词助手</h3>
+                     <div class="animate-pulse text-sm text-slate-400">正在生成...</div>
+                   </div>
+                 </div>`;
+            } else {
+                infoPanelHTML = `
+                <div class="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-dashed border-slate-300 p-12">
+                   <span class="text-4xl mb-4">👈</span><p>点击左侧假名开始学习</p>
+                </div>`;
+            }
+
+            return `
+            <div class="animate-fade-in">
+                <div class="text-center mb-8">
+                  <h2 class="text-3xl font-bold text-slate-800 mb-2">五十音图表</h2>
+                  <p class="text-slate-500">点击任意假名查看发音并获取 AI 生成的单词卡片。</p>
+                </div>
+                <div class="max-w-4xl mx-auto p-4">
+                  <div class="flex flex-col items-center gap-4 mb-8">
+                    <div class="flex justify-center space-x-2 bg-slate-100 p-1 rounded-full">
+                      <button onclick="setStudyTab('hiragana')" class="px-6 py-2 rounded-full font-bold transition-all text-sm ${isHiragana ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}">平假名</button>
+                      <button onclick="setStudyTab('katakana')" class="px-6 py-2 rounded-full font-bold transition-all text-sm ${!isHiragana ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}">片假名</button>
+                    </div>
+                    <div class="flex space-x-4">
+                       <button onclick="setStudyMode('seion')" class="text-sm font-medium border-b-2 pb-1 transition-colors ${isSeion ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}">清音</button>
+                       <button onclick="setStudyMode('dakuon')" class="text-sm font-medium border-b-2 pb-1 transition-colors ${!isSeion ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}">浊音/半浊音</button>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">${gridHTML}</div>
+                    <div class="flex flex-col space-y-4">${infoPanelHTML}</div>
+                  </div>
+                </div>
+            </div>`;
+        }
+
+        // --- View Controller: Quiz Mode ---
+
+        function renderQuizMenu() {
+            const config = state.quizConfig;
+            
+            // Helper to render type buttons
+            const renderTypeBtns = (target) => ['hiragana', 'katakana', 'romaji', 'random'].map(t => 
+                `<button onclick="setQuizConfig('${target}', '${t}')" class="py-2 px-3 rounded-lg text-sm font-bold border text-left transition-all ${config[target + 'Type'] === t ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}">${CHAR_TYPE_LABELS[t]}</button>`
+            ).join('');
+
+            // Helper to render categories
+            const renderCats = () => Object.entries(CATEGORY_GROUPS).map(([group, cats]) => {
+                const isGroupFull = cats.every(c => config.selectedCategories.includes(c));
+                return `
+                <div class="mb-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-xs font-bold uppercase text-slate-500">${group}</span>
+                        <button onclick="toggleQuizGroup('${cats.join(',')}')" class="text-[10px] px-1.5 py-0.5 rounded ${isGroupFull ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}">${isGroupFull ? '已全选' : '全选'}</button>
+                    </div>
+                    <div class="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                        ${cats.map(c => `
+                            <button onclick="toggleQuizCat('${c}')" class="py-1.5 px-1 rounded text-sm font-medium border transition-all ${config.selectedCategories.includes(c) ? 'bg-indigo-100 border-indigo-300 text-indigo-700' : 'bg-white border-slate-200 text-slate-400'}">
+                                ${ROW_LABELS[c] || c}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>`;
+            }).join('');
+
+            const isReady = config.selectedCategories.length > 0;
+
+            return `
+            <div class="max-w-3xl mx-auto p-6 bg-white rounded-2xl shadow-xl border border-indigo-50 mt-4 animate-fade-in">
+                <div class="text-center mb-6"><span class="text-5xl mb-2 block">🎮</span><h2 class="text-2xl font-bold text-slate-800">配置你的挑战</h2></div>
+                <div class="space-y-6 mb-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div><label class="block text-sm font-bold text-slate-700 mb-2">题目显示</label><div class="flex flex-col gap-2">${renderTypeBtns('question')}</div></div>
+                        <div><label class="block text-sm font-bold text-slate-700 mb-2">选项显示</label><div class="flex flex-col gap-2">${renderTypeBtns('answer')}</div></div>
+                    </div>
+                    <div class="border-t pt-4">${renderCats()}</div>
+                </div>
+                <div class="flex flex-col gap-4">
+                    <div class="flex gap-4">
+                        <button onclick="startQuiz('regular')" ${!isReady ? 'disabled' : ''} class="flex-1 py-4 rounded-xl text-lg font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${!isReady ? 'bg-slate-100 text-slate-400' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}">▶️ 常规挑战</button>
+                        <button onclick="startQuiz('mixed')" ${!isReady ? 'disabled' : ''} class="flex-1 py-4 rounded-xl text-lg font-bold shadow-lg transition-all flex flex-col items-center justify-center ${!isReady ? 'bg-slate-100 text-slate-400' : 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white'}"><span>🔀 混合挑战</span><span class="text-[10px] opacity-90">题目/选项随机互换</span></button>
+                    </div>
+                    <button onclick="startQuiz('heartbeat')" ${!isReady ? 'disabled' : ''} class="w-full py-4 rounded-xl text-lg font-bold shadow-lg transition-all flex flex-col items-center justify-center border-2 ${!isReady ? 'bg-slate-100 text-slate-400' : 'bg-pink-50 border-pink-400 text-pink-600 hover:bg-pink-100'}"><span>💓 心动挑战 (限时)</span><span class="text-[10px] opacity-80">5秒限时 | 10层衣服挑战 | 像素风少女</span></button>
+                </div>
+            </div>`;
+        }
+
+        function renderQuizGame() {
+            if (!state.currentQuestion) return '<div>Loading...</div>';
+            
+            const isHeartbeat = state.quizConfig.gameMode === 'heartbeat';
+            const qType = state.currentRoundTypes.q;
+            const aType = state.currentRoundTypes.a;
+            const qText = state.currentQuestion[qType];
+            
+            // Helper for avatar logic
+            const avatarHTML = isHeartbeat ? `
+            <div class="flex flex-col items-center justify-start lg:col-span-1 sticky top-4">
+                <div class="bg-pink-50 rounded-2xl p-4 border-2 border-pink-200 w-full h-[500px] flex flex-col items-center justify-center relative overflow-hidden shadow-inner">
+                   <div class="absolute top-4 right-4 bg-white/80 px-3 py-1 rounded-full text-xs font-bold text-pink-600 border border-pink-200 backdrop-blur-sm z-10">${state.clothingLevel} / 10 层</div>
+                   <div id="avatar-container" class="w-full h-full flex items-center justify-center">
+                      ${renderAvatar(state.clothingLevel, state.roundState === 'failure' ? 'angry' : (state.roundState === 'success' ? 'happy' : 'shocked'))}
+                   </div>
+                </div>
+            </div>` : '';
+
+            // Helper for Timer
+            const timerHTML = isHeartbeat ? `
+            <div class="mb-4">
+                <div class="flex justify-between text-xs font-bold text-slate-400 mb-1"><span>Question ${state.questionCount}/${HEARTBEAT_TOTAL_QUESTIONS}</span><span>${state.timeLeft.toFixed(1)}s</span></div>
+                <div class="h-4 w-full bg-slate-200 rounded-full overflow-hidden shadow-inner">
+                  <div class="h-full transition-all duration-100 ease-linear ${state.timeLeft < 2 ? 'bg-red-500' : 'bg-pink-500'}" style="width: ${(state.timeLeft / 5) * 100}%"></div>
+                </div>
+             </div>` : '';
+
+            // Options
+            const optionsHTML = state.currentOptions.map((opt, idx) => {
+                const isCorrect = opt.romaji === state.currentQuestion.romaji;
+                let btnClass = "bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-sm";
+                if (state.roundState !== 'waiting') {
+                    if (isCorrect) btnClass = "bg-green-500 border-green-600 text-white shadow-green-200 shadow-lg ring-2 ring-green-300 scale-[1.02]";
+                    else btnClass = "bg-slate-100 text-slate-300 opacity-50";
+                }
+                return `<button ${state.roundState !== 'waiting' ? 'disabled' : ''} onclick="handleAnswer('${opt.romaji}')" class="h-24 rounded-2xl border-b-4 transition-all relative overflow-hidden ${btnClass}"><span class="text-3xl font-bold ${aType === 'romaji' ? 'font-mono' : 'kana-font'}">${opt[aType]}</span></button>`;
+            }).join('');
+
+            // Failure/Mnemonic Panel
+            let feedbackHTML = '';
+            if (state.roundState === 'failure' && !isHeartbeat) {
+                feedbackHTML = `
+                <div class="bg-red-50 border border-red-100 rounded-xl p-6 animate-fade-in-up shadow-sm mt-4">
+                   <h3 class="text-red-800 font-bold text-lg mb-2">回答错误</h3>
+                   <p class="text-red-600 text-sm mb-4">正确答案: <span class="font-bold text-lg mx-1">${state.currentQuestion[aType]}</span> (${state.currentQuestion.romaji})</p>
+                   <div id="mnemonic-area" class="bg-white rounded-lg p-4 border border-red-100 shadow-inner mb-4">
+                      <div class="animate-pulse text-sm text-slate-400">正在获取 AI 记忆口诀...</div>
+                   </div>
+                   <button onclick="nextQuestion()" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3.5 rounded-xl shadow-lg">继续挑战下一题 →</button>
+                </div>`;
+            }
+
+            return `
+            <div class="animate-fade-in ${isHeartbeat ? 'max-w-6xl' : 'max-w-2xl'} mx-auto">
+              <div class="flex justify-between items-center mb-4 bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                <button onclick="quitGame()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg text-sm font-bold">🔚 退出</button>
+                <div class="text-center"><span class="text-xs text-slate-400 font-bold">得分</span><div class="text-2xl font-bold text-indigo-600">${state.score}</div></div>
+                <div class="text-right"><span class="text-xs text-slate-400 font-bold">连胜</span><div class="text-2xl font-bold text-orange-500">🔥 ${state.streak}</div></div>
+              </div>
+              <div class="grid gap-8 ${isHeartbeat ? 'lg:grid-cols-6' : 'grid-cols-1'}">
+                ${avatarHTML}
+                <div class="${isHeartbeat ? 'lg:col-span-5' : ''}">
+                   ${timerHTML}
+                   <div class="text-center mb-8 py-4 relative">
+                      <div class="h-32 flex items-center justify-center mb-2">
+                         <h1 class="font-bold text-slate-800 transition-all ${qType === 'romaji' ? 'text-7xl font-mono' : 'text-8xl kana-font'}">${qText}</h1>
+                      </div>
+                      <p class="text-slate-400 font-medium">选择对应的 <span class="text-indigo-500 font-bold">${CHAR_TYPE_LABELS[aType].replace(' (Random)', '')}</span></p>
+                   </div>
+                   <div class="grid grid-cols-2 gap-4 mb-8">${optionsHTML}</div>
+                   ${feedbackHTML}
+                </div>
+              </div>
+            </div>`;
+        }
+
+        function renderResult() {
+            const isPerfect = state.clothingLevel === 0;
+            return `
+            <div class="max-w-md mx-auto p-8 bg-white rounded-3xl shadow-xl mt-8 text-center animate-fade-in border-4 border-pink-100">
+                <div class="text-8xl mb-4">${isPerfect ? '😍' : (state.clothingLevel <= 5 ? '😊' : '😓')}</div>
+                <h2 class="text-3xl font-bold text-slate-800 mb-2">${isPerfect ? '攻略成功！' : '挑战结束'}</h2>
+                <div class="bg-pink-50 rounded-xl p-4 mb-6">
+                   <p class="text-pink-800 font-bold mb-1">最终剩余衣物</p>
+                   <p class="text-4xl font-bold text-pink-600">${state.clothingLevel} <span class="text-lg text-pink-400">层</span></p>
+                </div>
+                <div class="mb-6 h-64 w-48 mx-auto border-2 border-pink-100 rounded-lg overflow-hidden bg-white flex items-center justify-center">
+                   ${renderAvatar(state.clothingLevel, isPerfect ? 'happy' : 'shocked')}
+                </div>
+                <button onclick="quitGame()" class="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition-all">返回菜单</button>
+            </div>`;
+        }
+
+        // --- Interaction Logic ---
+
+        window.switchView = (view) => {
+            state.view = view;
+            updateApp();
+            // Update Nav styles
+            const btnStudy = document.getElementById('btn-nav-study');
+            const btnQuiz = document.getElementById('btn-nav-quiz');
+            if(view === 'study') {
+                btnStudy.className = "px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-white text-indigo-600 shadow-sm";
+                btnQuiz.className = "px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-500 hover:text-slate-700";
+            } else {
+                btnStudy.className = "px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-500 hover:text-slate-700";
+                btnQuiz.className = "px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-white text-indigo-600 shadow-sm";
+            }
+        };
+
+        window.promptApiKey = () => {
+            const key = prompt("请输入 Google Gemini API Key:\n(留空则仅使用本地功能，无 AI 辅助)", state.apiKey);
+            if (key !== null) {
+                state.apiKey = key;
+                localStorage.setItem('GEMINI_API_KEY', key);
+            }
+        };
+
+        // Study Logic
+        window.setStudyTab = (tab) => { state.studyTab = tab; updateApp(); };
+        window.setStudyMode = (mode) => { state.studyMode = mode; updateApp(); };
+        window.handleStudyClick = async (romaji) => {
+            state.selectedKana = KANA_DATA.find(k => k.romaji === romaji);
+            updateApp();
+            
+            const char = state.studyTab === 'hiragana' ? state.selectedKana.hiragana : state.selectedKana.katakana;
+            playAudio(char);
+
+            // AI Vocab
+            const vocabContainer = document.getElementById('vocab-container');
+            if(vocabContainer) {
+                const vocab = await fetchVocabulary(char);
+                if (vocab) {
+                    vocabContainer.innerHTML = `
+                    <div class="mt-4 bg-indigo-50 p-4 rounded-xl animate-fade-in">
+                       <div class="flex justify-between items-baseline mb-1">
+                         <span class="text-2xl font-bold kana-font text-indigo-900">${vocab.word}</span>
+                         <span class="text-sm text-indigo-600">${vocab.reading}</span>
+                       </div>
+                       <p class="text-slate-600">${vocab.meaning}</p>
+                       <button onclick="playAudio('${vocab.word}')" class="mt-2 text-xs text-indigo-400 hover:text-indigo-600">🔊 读单词</button>
+                    </div>`;
+                } else {
+                    vocabContainer.innerHTML = '<p class="mt-2 text-slate-400 text-sm">未能获取 AI 单词 (请检查 API Key)</p>';
+                }
+            }
+        };
+
+        // Quiz Logic
+        window.setQuizConfig = (key, val) => {
+            if (key === 'question') state.quizConfig.questionType = val;
+            if (key === 'answer') state.quizConfig.answerType = val;
+            updateApp();
+        };
+        window.toggleQuizGroup = (catsStr) => {
+            const cats = catsStr.split(',');
+            const allSelected = cats.every(c => state.quizConfig.selectedCategories.includes(c));
+            if (allSelected) {
+                state.quizConfig.selectedCategories = state.quizConfig.selectedCategories.filter(c => !cats.includes(c));
+            } else {
+                const set = new Set(state.quizConfig.selectedCategories);
+                cats.forEach(c => set.add(c));
+                state.quizConfig.selectedCategories = Array.from(set);
+            }
+            updateApp();
+        };
+        window.toggleQuizCat = (cat) => {
+            if (state.quizConfig.selectedCategories.includes(cat)) {
+                state.quizConfig.selectedCategories = state.quizConfig.selectedCategories.filter(c => c !== cat);
+            } else {
+                state.quizConfig.selectedCategories.push(cat);
+            }
+            updateApp();
+        };
+
+        window.startQuiz = (mode) => {
+            if (mode === 'regular' && state.quizConfig.questionType === state.quizConfig.answerType && state.quizConfig.questionType !== 'random') {
+                return alert('常规模式下题目和答案类型不能相同');
+            }
+            state.quizConfig.gameMode = mode;
+            state.score = 0;
+            state.streak = 0;
+            state.quizStatus = 'playing';
+            
+            if (mode === 'heartbeat') {
+                state.clothingLevel = 10;
+                state.questionCount = 0;
+                playAudio(VOICE_LINES.start[0], true);
+            }
+            
+            generateQuestion();
+        };
+
+        window.quitGame = () => {
+            state.quizStatus = 'menu';
+            state.roundState = 'waiting';
+            if (state.heartbeatTimerId) clearInterval(state.heartbeatTimerId);
+            updateApp();
+        };
+
+        function generateQuestion() {
+            const config = state.quizConfig;
+            
+            // Heartbeat Logic
+            if (config.gameMode === 'heartbeat') {
+                if (state.questionCount >= HEARTBEAT_TOTAL_QUESTIONS) {
+                    state.quizStatus = 'result';
+                    if (state.clothingLevel === 0) playAudio(VOICE_LINES.win_naked[0], true);
+                    else if (state.clothingLevel <= 5) playAudio(VOICE_LINES.win_normal[0], true);
+                    else playAudio(VOICE_LINES.lose[0], true);
+                    updateApp();
+                    return;
+                }
+                state.questionCount++;
+                state.timeLeft = 5.0;
+                if (state.heartbeatTimerId) clearInterval(state.heartbeatTimerId);
+                state.heartbeatTimerId = setInterval(() => {
+                    state.timeLeft -= 0.1;
+                    if (state.timeLeft <= 0) {
+                        clearInterval(state.heartbeatTimerId);
+                        handleTimeout();
+                    } else {
+                        // Optimistic UI update for timer only
+                        const bar = document.querySelector('.bg-pink-500, .bg-red-500');
+                        const text = document.querySelector('.text-slate-400 span:last-child');
+                        if (bar && text) {
+                            bar.style.width = `${(state.timeLeft/5)*100}%`;
+                            if(state.timeLeft < 2) { bar.classList.remove('bg-pink-500'); bar.classList.add('bg-red-500'); }
+                            text.innerText = state.timeLeft.toFixed(1) + 's';
+                        }
+                    }
+                }, 100);
+            }
+
+            // Type Selection
+            const pickRandom = (excl) => {
+                const types = ['hiragana', 'katakana', 'romaji'];
+                const pool = excl ? types.filter(t => t !== excl) : types;
+                return pool[Math.floor(Math.random() * pool.length)];
+            };
+
+            let qT = config.questionType === 'random' ? pickRandom() : config.questionType;
+            let aT = config.answerType === 'random' ? pickRandom(qT) : config.answerType;
+            if (config.gameMode !== 'regular' && Math.random() > 0.5) [qT, aT] = [aT, qT];
+            
+            state.currentRoundTypes = {q: qT, a: aT};
+
+            // Question Selection
+            const pool = KANA_DATA.filter(k => config.selectedCategories.includes(k.category));
+            const correct = pool[Math.floor(Math.random() * pool.length)];
+            
+            // Distractors
+            const distractors = new Set();
+            while (distractors.size < 3) {
+                const d = KANA_DATA[Math.floor(Math.random() * KANA_DATA.length)];
+                if (d.romaji !== correct.romaji) distractors.add(d);
+            }
+            state.currentQuestion = correct;
+            state.currentOptions = [correct, ...distractors].sort(() => Math.random() - 0.5);
+            state.roundState = 'waiting';
+            
+            updateApp();
+        }
+
+        window.handleAnswer = async (romaji) => {
+            if (state.roundState !== 'waiting') return;
+            if (state.heartbeatTimerId) clearInterval(state.heartbeatTimerId);
+
+            if (romaji === state.currentQuestion.romaji) {
+                state.score += 10;
+                state.streak++;
+                state.roundState = 'success';
+                playSoundEffect('success');
+                if (state.quizConfig.gameMode === 'heartbeat') {
+                    state.clothingLevel = Math.max(0, state.clothingLevel - 1);
+                    playAudio(VOICE_LINES.correct_strip[0], true);
+                }
+                updateApp();
+                setTimeout(generateQuestion, 1000);
+            } else {
+                state.streak = 0;
+                state.roundState = 'failure';
+                playSoundEffect('failure');
+                
+                if (state.quizConfig.gameMode === 'heartbeat') {
+                    state.clothingLevel = Math.min(10, state.clothingLevel + 1);
+                    playAudio(VOICE_LINES.wrong_dress[0], true);
+                    updateApp();
+                    setTimeout(generateQuestion, 1500);
+                } else {
+                    updateApp(); // Show failure UI
+                    // Fetch Mnemonic
+                    const mnemonicArea = document.getElementById('mnemonic-area');
+                    if (mnemonicArea) {
+                        const targetType = (state.currentRoundTypes.q === 'hiragana' || state.currentRoundTypes.a === 'hiragana') ? 'Hiragana' : 'Katakana';
+                        const data = await fetchMnemonic(
+                            targetType === 'Hiragana' ? state.currentQuestion.hiragana : state.currentQuestion.katakana,
+                            state.currentQuestion.romaji, targetType
+                        );
+                        if (data) {
+                            mnemonicArea.innerHTML = `<p class="text-lg font-bold text-indigo-600 mb-1">"${data.mnemonic}"</p><p class="text-xs text-slate-500">${data.description}</p>`;
+                        } else {
+                            mnemonicArea.innerHTML = '<p class="text-xs text-slate-400">未能获取记忆法</p>';
+                        }
+                    }
+                }
+            }
+        };
+        
+        window.nextQuestion = () => generateQuestion();
+
+        function handleTimeout() {
+            state.roundState = 'failure';
+            state.streak = 0;
+            playSoundEffect('failure');
+            state.clothingLevel = Math.min(10, state.clothingLevel + 1);
+            playAudio(VOICE_LINES.timeout[0], true);
+            updateApp();
+            setTimeout(generateQuestion, 1500);
+        }
+
+        // --- Main Render Loop ---
+        function updateApp() {
+            const container = document.getElementById('app-container');
+            if (state.view === 'study') {
+                container.innerHTML = renderStudyView();
+            } else {
+                if (state.quizStatus === 'menu') container.innerHTML = renderQuizMenu();
+                else if (state.quizStatus === 'playing') container.innerHTML = renderQuizGame();
+                else if (state.quizStatus === 'result') container.innerHTML = renderResult();
+            }
+        }
+
+        // Init
+        window.speechSynthesis.onvoiceschanged = () => { voices = window.speechSynthesis.getVoices(); };
+        voices = window.speechSynthesis.getVoices();
+        updateApp();
+
+    </script>
+</body>
 </html>
